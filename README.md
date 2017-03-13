@@ -2,6 +2,6 @@
 ---
 
 ### RNA-seq mapping and homoeolog read estimation
-* GNASP mapping followed by PolyCat homoeolog read participation: "gsnap2polycat_120116.sh"
+* "gsnap2polycat_120116.sh" - GNASP mapping followed by PolyCat homoeolog read participation: 
 * Bowtie2 mapping followed by HyLite SNP detection and read participation:
 * Bowtie2 mapping with RSEM read estimation:
