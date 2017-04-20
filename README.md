@@ -11,11 +11,11 @@
 * 
 
 ### Differential gene expression analysis
-* [DC.all.r](DC.all.r) - Differential coexpression tests and classification for all gene pairs; scripts optimized for LARGE network (>40,000 genes) from DiffCorr and DGCA functions
-* [DC.homoeoP.r](DC.homoeoP.r) - Differential coexpression tests and classification for At-Dt homoeo-pairs
+* [DE.r](DC033017.r) - Differential expression analysis using DESeq2 and EBSeq; the detection of 'true' DE genes according to reference dataset can be seen as a binary decision problem, where the performances of DE algorithms (DESeq2 vs EBSeq) in combination with homoeolog read estimation (polycat vs rsem vs hylite) were evaluated with ROC curves and AUC.  
 
 ### Differential gene-pair coexpression analysis
-*
+* [DC.all.r](DC.all.r) - Differential coexpression tests and classification for all gene pairs; scripts optimized for LARGE network (>40,000 genes) from DiffCorr and DGCA functions
+* [DC.homoeoP.r](DC.homoeoP.r) - Differential coexpression tests and classification for At-Dt homoeo-pairs
 
 ### Coexpression network construction
 * 
