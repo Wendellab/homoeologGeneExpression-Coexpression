@@ -1,5 +1,10 @@
 ## Challenges and pitfall in the use of partitioned gene counts for homoeologous gene expression and co-expression network analyses
+
 ---
+### RNA-seq datasets
+* Cotton seed development - 12 samples (4 time points x 3 biological replicates) per diploid or polyploid species, as deposited in NCBI BioProject [PRJNA179447](https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA179447).
+* Flowering time regulation - 23 samples (8 tissue types x 3 biological replicates; only 2 reps for SDM) per diploid or polyploid species, as partially described [here](https://github.com/Wendellab/FloweringTimeDomestication/blob/master/sample.info).
+
 
 ### RNA-seq mapping and homoeolog read estimation
 * [gsnap2polycat_120116.sh](gsnap2polycat_120116.sh) - GNASP mapping followed by PolyCat homoeolog read participation.
