@@ -8,12 +8,12 @@
 
 ### RNA-seq mapping and homoeolog read estimation
 * GNASP mapping followed by PolyCat homoeolog read participation: bash scritps for [SE](gsnap2polycat_120116.sh) and [PE](gsnap2polycat_PE.sh) reads.
-* Bowtie2 mapping against reference transcripts followeed by RSEM read estimation: [SE](https://github.com/huguanjing/AD1_RNA-seq/blob/master/bowtie2rsem.sh) and [PE](bowtie2rsem.sh) bash scrpts.
+* Bowtie2 mapping against reference transcripts followeed by RSEM read estimation: [SE](https://github.com/huguanjing/AD1_RNA-seq/blob/master/bowtie2rsem.sh) and [PE](bowtie2rsem_PE.sh) bash scrpts.
 
 * Bowtie2 mapping aginst D5 reference transcripts followed by HyLite SNP detection and read participation: [SE](bowtie2hylite.sh) bash stricpt with [this](sam2_protocol_file.txt) protocol file.
 
 ### Evalutation of homoeolog read estimation
-* Detection of effective transcript regions that are diagnostic of homoeolog origins: [R script](detectEffectiveRegion.r)
+* Detection of effective transcript regions that are diagnostic of homoeolog origins: [R script](effectiveRegion/detectEffectiveRegion.r)
 * Calculating measures of ***Efficiency***, ***Accuracy***, and ***Discrepancy***, to evaluate the performance of homoeolog-specific read assignment: to be added
 * Statistical modeling and prediction: to be added
 

@@ -57,12 +57,15 @@ echo ${j/_1.fq.gz/}.pruned.namesort.bam
 echo ${j/_1.fq.gz/}.pruned.namesort.A.bam
 echo ${j/_1.fq.gz/}.pruned.namesort.D.bam
 echo ${j/_1.fq.gz/}.pruned.namesort.N.bam
+echo ${j/_1.fq.gz/}.pruned.namesort.AD.bam
 echo ".....Begin counting reads for T, A, D and N" >> ${j/_1.fq.gz/}.log
 # without name sort, Maximum alignment buffer size exceeded error
 htseq-count -f bam --stranded=no -r name ${j/_1.fq.gz/}.pruned.namesort.bam D5.primaryOnly.gtf > ${j/_1.fq.gz/}.T.txt
 htseq-count -f bam --stranded=no -r name ${j/_1.fq.gz/}.pruned.namesort.A.bam D5.primaryOnly.gtf > ${j/_1.fq.gz/}.A.txt
 htseq-count -f bam --stranded=no -r name ${j/_1.fq.gz/}.pruned.namesort.D.bam D5.primaryOnly.gtf > ${j/_1.fq.gz/}.D.txt
 htseq-count -f bam --stranded=no -r name ${j/_1.fq.gz/}.pruned.namesort.N.bam D5.primaryOnly.gtf > ${j/_1.fq.gz/}.N.txt
+htseq-count -f bam --stranded=no -r name ${j/_1.fq.gz/}.pruned.namesort.AD.bam D5.primaryOnly.gtf > ${j/_1.fq.gz/}.AD.txt
+
 echo ""
 
 
