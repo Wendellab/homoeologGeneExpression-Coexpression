@@ -10,7 +10,7 @@
 * GNASP mapping followed by PolyCat homoeolog read participation: bash scritps for SE ([gsnap2polycat_120116.sh](scripts/gsnap2polycat_120116.sh)) and PE ([gsnap2polycat_PE.sh](scripts/gsnap2polycat_PE.sh)) reads.
 * Bowtie2 mapping against reference transcripts followeed by RSEM read estimation: SE ([here](https://github.com/huguanjing/AD1_RNA-seq/blob/master/bowtie2rsem.sh)) and PE ([bowtie2rsem_PE.sh](scripts/bowtie2rsem_PE.sh)) bash scrpts.
 * Bowtie2 mapping against D5 reference transcripts followed by HyLite SNP detection and read participation: SE bash stricpt ([bowtie2hylite.sh](scripts/bowtie2hylite.sh) with protocol file [se_protocol_file.txt](scripts/se_protocol_file.txt).
-* SALMON mapping and read estimation against reference transcripts: [???]()
+* SALMON mapping and read estimation against reference transcripts: [salmon.flower.sh](scripts/salmon.flower.sh) and [salmon.seed.sh](scripts/salmon.seed.sh)
 * kallisto [???]()
 
 
