@@ -41,10 +41,10 @@ LSS long term storage dir: `/lss/research/jfw-lab/Projects/Eflen/`
 
 **[method]** as "polycat", "hylite", "rsem", "salmon", "kallisto".
 
-* "pca.**[method]**.log2cpm.pdf" - PCA plot of 33 samples
-* "R-01-**[method]**Datasets.RData" - raw read counts of A2.Total, A2.At, A2.Dt, D5.Total, D5.At, D5.Dt, ADs.At, ADs.Dt
-* "R-01-**[method]**NetworkDatasets.RData" - dataset to build duplicated networks for A2D5 (expected from diploid true counts), A2D5.tech (technically expected from diploid counts accounting for program and reference errors), ADs (observed as estimated polyploid counts).
-* "s1.plotVariance.A2D5vsADs.pdf" - PCA plot of A2D5, A2D5.tech, ADs; not very useful.
+* `pca.[method].log2cpm.pdf`............ PCA plot of 33 samples
+* `R-01-[method]Datasets.RData`............ raw read counts of A2.Total, A2.At, A2.Dt, D5.Total, D5.At, D5.Dt, ADs.At, ADs.Dt
+* `R-01-[method]NetworkDatasets.RData`............ dataset to build duplicated networks for A2D5 (expected from diploid true counts), A2D5.tech (technically expected from diploid counts accounting for program and reference errors), ADs (observed as estimated polyploid counts).
+* `s1.plotVariance.A2D5vsADs.pdf`............ PCA plot of A2D5, A2D5.tech, ADs; not very useful.
 
 
 ### Step 2. Evalutation of homoeolog read estimation
@@ -70,12 +70,12 @@ Additionally from the perspective of [Precision and recall](https://en.wikipedia
 
 #### Explanation of output files
 
-* "s2.eval.**[method]**.pdf" - histogram and pairs plot of metrics and etc.
-* "s2.eval.**[method]**.homoeolog.pdf" - scatter plot of At vs Dt metrics
-* "s2.eval.**[method]**.summary.pdf" - metric summary table
-* "s2.assign_eval.**[method]**.Rdata"
-* "s2.assign_eval.summary.pdf" - plots for comparing methods
-* "2.2.evaluation\_summary.r.txt" - comparison analysis printout
+* `s2.eval.[method].pdf`............ histogram and pairs plot of metrics and etc.
+* `s2.eval.[method].homoeolog.pdf`............ scatter plot of At vs Dt metrics
+* `s2.eval.[method].summary.pdf`............ metric summary table
+* `s2.assign_eval.[method].Rdata"
+* `s2.assign_eval.summary.pdf`............ plots for comparing methods
+* `2.2.evaluation_summary.r.txt`............ comparison analysis printout
 
 **[method]** as "polycat", "hylite", "rsem", "salmon", "kallisto".
 
