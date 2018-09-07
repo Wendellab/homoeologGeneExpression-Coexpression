@@ -123,7 +123,7 @@ for(i in methods){
         model.null = glm(get(m) ~ 1,
         data=res)
         
-        model.full = glm(get(m) ~ geneLenM + percentageEffectM + expression.log2 +dpa*rep,
+        model.full = glm(get(m) ~ geneLenM + percentageEffectM + expression.log2 +sample,
         data=res)
         
         step(model.null,
