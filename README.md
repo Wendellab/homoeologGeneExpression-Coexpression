@@ -39,7 +39,7 @@ LSS long term storage dir: `/lss/research/jfw-lab/Projects/Eflen/`
 
 #### Explanation of other output files
 
-**[method]** as "polycat", "hylite", "rsem", "salmon", "kallisto".
+`[method]` as "polycat", "hylite", "rsem", "salmon", "kallisto".
 
 * `pca.[method].log2cpm.pdf`............ PCA plot of 33 samples
 * `R-01-[method]Datasets.RData`............ raw read counts of A2.Total, A2.At, A2.Dt, D5.Total, D5.At, D5.Dt, ADs.At, ADs.Dt
@@ -77,7 +77,7 @@ Additionally from the perspective of [Precision and recall](https://en.wikipedia
 * `s2.assign_eval.summary.pdf`............ plots for comparing methods
 * `2.2.evaluation_summary.r.txt`............ comparison analysis printout
 
-**[method]** as "polycat", "hylite", "rsem", "salmon", "kallisto".
+`[method]` as "polycat", "hylite", "rsem", "salmon", "kallisto".
 
 
 

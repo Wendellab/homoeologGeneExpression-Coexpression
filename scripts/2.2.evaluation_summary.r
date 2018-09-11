@@ -44,7 +44,7 @@ pairs( size[23:33,], lower.panel=panel.smooth, upper.panel=panel.cor, pch=20,  m
 
 ## summary
 sumTbl=list()
-metrics = c( "Efficiency" , "Discrepancy", "Accuracy",    "Precision", "Fmeasure"   )
+metrics = c( "Efficiency" , "Discrepancy", "Accuracy",    "Precision", "Fmeasure","MCC"  )
 methods = c("polycat","hylite","rsem", "salmon", "kallisto")
 for(i in metrics){
     if(exists("temp")){rm(temp)}

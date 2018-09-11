@@ -77,6 +77,7 @@ plotRes.homoeo<-function(resH, file="", sampleN = 20000)
     plot(resH$FstatA[only],resH$FstatD[only],pch=".",xlim=c(0,1), ylim=c(0,1), col = rgb(0, 0, 0, 0.05), main=paste0("Fstat: At vs Dt, r=",round(r,3)))
     lines(stats::lowess(resH$FstatD[only], resH$FstatA[only]),  col = "red")
     abline(lm(resH$FstatD[only]~resH$FstatA[only]),  col = "blue")
+    
 
 dev.off()
 }
@@ -232,6 +233,27 @@ resFstat <- as.data.frame(rbind(overall, bySamples))
 names(resFstat) <-c( "At","Dt")
 resFstat
 
+## MCC
+TP = A2.At
+TN = D5.Dt
+FP = D5.At
+FN = A2.Dt
+MCC = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+TN = D5.Dt + D5.N
+FN =  A2.Dt + A2.N
+MCCAn = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+TP = D5.Dt
+TN = A2.At + A2.N
+FP = A2.Dt
+FN = D5.At + D5.N
+MCCDn = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+
+overall <- c(mean(as.numeric(as.matrix(MCC)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCAn)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCDn)), na.rm=TRUE) )
+bySamples<-cbind( apply(MCC,2,function(x)mean(x, na.rm=TRUE)),apply(MCCAn,2,function(x)mean(x, na.rm=TRUE)),apply(MCCDn,2,function(x)mean(x, na.rm=TRUE)))
+resMCC <- as.data.frame(rbind(overall, bySamples))
+names(resMCC) <-c( "total", "At","Dt")
+resMCC
+
 ###############
 
 ## prepare explainatory variables for analysis
@@ -246,7 +268,7 @@ names(len)<-geneL$gene
 # length for 37223 genes
 len<-len[rownames(A2.Total)]
 
-#\ percentageEffectM
+# percentageEffectM
 ratio100<- geneL$theoretical100 / geneL$true
 names(ratio100)<-geneL$gene
 ratio300<- geneL$theoretical300 / geneL$true
@@ -282,8 +304,8 @@ res <- data.frame(gene, sample, tissue, rep, geneLenM, percentageEffectM, expres
 # discrepancy very tricky:
 # res$discrepancy0 <- res$discrepancy
 # res$discrepancy0[discrepancy>30] <- NA
-resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)), as.numeric(as.matrix(accuracyA)), as.numeric(as.matrix(accuracyD)), as.numeric(as.matrix(precisionA)), as.numeric(as.matrix(precisionD)), as.numeric(as.matrix(FstatA)), as.numeric(as.matrix(FstatD)))
-names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","accuracyA", "accuracyD", "precisionA", "precisionD", "FstatA", "FstatD")
+resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)), as.numeric(as.matrix(accuracyA)), as.numeric(as.matrix(accuracyD)), as.numeric(as.matrix(precisionA)), as.numeric(as.matrix(precisionD)), as.numeric(as.matrix(FstatA)), as.numeric(as.matrix(FstatD)),as.numeric(as.matrix(MCC)), as.numeric(as.matrix(MCCAn)), as.numeric(as.matrix(MCCDn)) )
+names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","accuracyA", "accuracyD", "precisionA", "precisionD", "FstatA", "FstatD","MCC","MCCAn","MCCDn")
 
 ## plot and save results
 polycat<-res
@@ -304,9 +326,11 @@ textplot(round(resPrec*100,2))
 mtext("Precision (%)")
 textplot(round(resFstat*100,2))
 mtext("F measure (%)")
+textplot(round(resMCC*100,2))
+mtext("MCC (%)")
 dev.off()
 
-polycatSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, Accuracy=resAccu, Precision=resPrec, Fmeasure=resFstat)
+polycatSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, Accuracy=resAccu, Precision=resPrec, Fmeasure=resFstat, MCC= resMCC)
 
 save(polycat, polycatH, polycatSummary, file="s2.assign_eval.polycat.Rdata")
 # save(efficency, efficencyA, efficencyD, accuracy, accuracyA, accuracyD, discrepancy, discrepancyA, discrepancyD, info, geneL, ratio100, ratio300, file="s2.polycat.estimation.rdata")
@@ -446,6 +470,22 @@ resFstat <- as.data.frame(rbind(overall, bySamples))
 names(resFstat) <-c( "At","Dt")
 resFstat
 
+## MCC
+TP = A2.At
+TN = D5.Dt
+FP = D5.At
+FN = A2.Dt
+MCC = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+MCCAn = MCC
+MCCDn = MCC
+
+overall <- c(mean(as.numeric(as.matrix(MCC)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCAn)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCDn)), na.rm=TRUE) )
+bySamples<-cbind( apply(MCC,2,function(x)mean(x, na.rm=TRUE)),apply(MCCAn,2,function(x)mean(x, na.rm=TRUE)),apply(MCCDn,2,function(x)mean(x, na.rm=TRUE)))
+resMCC <- as.data.frame(rbind(overall, bySamples))
+names(resMCC) <-c( "total", "At","Dt")
+resMCC
+
+
 ###############
 
 ## prepare explainatory variables for analysis
@@ -496,8 +536,8 @@ res <- data.frame(gene, sample, tissue, rep, geneLenM, percentageEffectM, expres
 # discrepancy very tricky:
 # res$discrepancy0 <- res$discrepancy
 # res$discrepancy0[discrepancy>30] <- NA
-resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)), as.numeric(as.matrix(accuracyA)), as.numeric(as.matrix(accuracyD)), as.numeric(as.matrix(precisionA)), as.numeric(as.matrix(precisionD)), as.numeric(as.matrix(FstatA)), as.numeric(as.matrix(FstatD)))
-names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","accuracyA", "accuracyD", "precisionA", "precisionD", "FstatA", "FstatD")
+resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)), as.numeric(as.matrix(accuracyA)), as.numeric(as.matrix(accuracyD)), as.numeric(as.matrix(precisionA)), as.numeric(as.matrix(precisionD)), as.numeric(as.matrix(FstatA)), as.numeric(as.matrix(FstatD)),as.numeric(as.matrix(MCC)))
+names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","accuracyA", "accuracyD", "precisionA", "precisionD", "FstatA", "FstatD","MCC")
 
 ## plot and save results
 salmon<-res
@@ -518,9 +558,12 @@ textplot(round(resPrec*100,2))
 mtext("Precision (%)")
 textplot(round(resFstat*100,2))
 mtext("F measure (%)")
+textplot(round(resMCC*100,2))
+mtext("MCC (%)")
+
 dev.off()
 
-salmonSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, Accuracy=resAccu, Precision=resPrec, Fmeasure=resFstat)
+salmonSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, Accuracy=resAccu, Precision=resPrec, Fmeasure=resFstat, MCC=resMCC)
 
 save(salmon, salmonH, salmonSummary, file="s2.assign_eval.salmon.Rdata")
 
@@ -657,6 +700,21 @@ bySamples<-cbind( apply(FstatA,2,function(x)mean(x, na.rm=TRUE)),apply(FstatD,2,
 resFstat <- as.data.frame(rbind(overall, bySamples))
 names(resFstat) <-c( "At","Dt")
 resFstat
+## MCC
+TP = A2.At
+TN = D5.Dt
+FP = D5.At
+FN = A2.Dt
+MCC = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+MCCAn = MCC
+MCCDn = MCC
+
+overall <- c(mean(as.numeric(as.matrix(MCC)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCAn)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCDn)), na.rm=TRUE) )
+bySamples<-cbind( apply(MCC,2,function(x)mean(x, na.rm=TRUE)),apply(MCCAn,2,function(x)mean(x, na.rm=TRUE)),apply(MCCDn,2,function(x)mean(x, na.rm=TRUE)))
+resMCC <- as.data.frame(rbind(overall, bySamples))
+names(resMCC) <-c( "total", "At","Dt")
+resMCC
+
 
 ###############
 
@@ -708,8 +766,8 @@ res <- data.frame(gene, sample, tissue, rep, geneLenM, percentageEffectM, expres
 # discrepancy very tricky:
 # res$discrepancy0 <- res$discrepancy
 # res$discrepancy0[discrepancy>30] <- NA
-resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)), as.numeric(as.matrix(accuracyA)), as.numeric(as.matrix(accuracyD)), as.numeric(as.matrix(precisionA)), as.numeric(as.matrix(precisionD)), as.numeric(as.matrix(FstatA)), as.numeric(as.matrix(FstatD)))
-names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","accuracyA", "accuracyD", "precisionA", "precisionD", "FstatA", "FstatD")
+resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)), as.numeric(as.matrix(accuracyA)), as.numeric(as.matrix(accuracyD)), as.numeric(as.matrix(precisionA)), as.numeric(as.matrix(precisionD)), as.numeric(as.matrix(FstatA)), as.numeric(as.matrix(FstatD)), as.numeric(as.matrix(MCC)))
+names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","accuracyA", "accuracyD", "precisionA", "precisionD", "FstatA", "FstatD", "MCC")
 
 ## plot and save results
 kallisto<-res
@@ -730,9 +788,12 @@ textplot(round(resPrec*100,2))
 mtext("Precision (%)")
 textplot(round(resFstat*100,2))
 mtext("F measure (%)")
+textplot(round(resMCC*100,2))
+mtext("MCC (%)")
+
 dev.off()
 
-kallistoSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, Accuracy=resAccu, Precision=resPrec, Fmeasure=resFstat)
+kallistoSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, Accuracy=resAccu, Precision=resPrec, Fmeasure=resFstat, MCC=resMCC)
 
 save(kallisto, kallistoH, kallistoSummary, file="s2.assign_eval.kallisto.Rdata")
 
@@ -870,6 +931,22 @@ resFstat <- as.data.frame(rbind(overall, bySamples))
 names(resFstat) <-c( "At","Dt")
 resFstat
 
+## MCC
+TP = A2.At
+TN = D5.Dt
+FP = D5.At
+FN = A2.Dt
+MCC = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+MCCAn = MCC
+MCCDn = MCC
+
+overall <- c(mean(as.numeric(as.matrix(MCC)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCAn)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCDn)), na.rm=TRUE) )
+bySamples<-cbind( apply(MCC,2,function(x)mean(x, na.rm=TRUE)),apply(MCCAn,2,function(x)mean(x, na.rm=TRUE)),apply(MCCDn,2,function(x)mean(x, na.rm=TRUE)))
+resMCC <- as.data.frame(rbind(overall, bySamples))
+names(resMCC) <-c( "total", "At","Dt")
+resMCC
+
+
 ###############
 
 ## prepare explainatory variables for analysis
@@ -920,8 +997,8 @@ res <- data.frame(gene, sample, tissue, rep, geneLenM, percentageEffectM, expres
 # discrepancy very tricky:
 # res$discrepancy0 <- res$discrepancy
 # res$discrepancy0[discrepancy>30] <- NA
-resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)), as.numeric(as.matrix(accuracyA)), as.numeric(as.matrix(accuracyD)), as.numeric(as.matrix(precisionA)), as.numeric(as.matrix(precisionD)), as.numeric(as.matrix(FstatA)), as.numeric(as.matrix(FstatD)))
-names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","accuracyA", "accuracyD", "precisionA", "precisionD", "FstatA", "FstatD")
+resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)), as.numeric(as.matrix(accuracyA)), as.numeric(as.matrix(accuracyD)), as.numeric(as.matrix(precisionA)), as.numeric(as.matrix(precisionD)), as.numeric(as.matrix(FstatA)), as.numeric(as.matrix(FstatD)), as.numeric(as.matrix(MCC)))
+names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","accuracyA", "accuracyD", "precisionA", "precisionD", "FstatA", "FstatD","MCC")
 
 ## plot and save results
 rsem<-res
@@ -942,9 +1019,11 @@ textplot(round(resPrec*100,2))
 mtext("Precision (%)")
 textplot(round(resFstat*100,2))
 mtext("F measure (%)")
+textplot(round(resMCC*100,2))
+mtext("MCC (%)")
 dev.off()
 
-rsemSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, Accuracy=resAccu, Precision=resPrec, Fmeasure=resFstat)
+rsemSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, Accuracy=resAccu, Precision=resPrec, Fmeasure=resFstat, MCC=resMCC)
 
 save(rsem, rsemH, rsemSummary, file="s2.assign_eval.rsem.Rdata")
 
@@ -1080,6 +1159,30 @@ resFstat <- as.data.frame(rbind(overall, bySamples))
 names(resFstat) <-c( "At","Dt")
 resFstat
 
+## MCC
+TP = At.T
+TN = Dt.T
+FP = At.F
+FN = Dt.F
+MCC = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+D5.N = A2.Total - At.T - Dt.F
+A2.N = D5.Total - Dt.T - At.F
+TN = Dt.T + D5.N
+FN = Dt.F + A2.N
+MCCAn = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+TP = Dt.T
+TN = At.T + A2.N
+FP = At.F
+FN = Dt.F + D5.N
+MCCDn = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+
+overall <- c(mean(as.numeric(as.matrix(MCC)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCAn)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCDn)), na.rm=TRUE) )
+bySamples<-cbind( apply(MCC,2,function(x)mean(x, na.rm=TRUE)),apply(MCCAn,2,function(x)mean(x, na.rm=TRUE)),apply(MCCDn,2,function(x)mean(x, na.rm=TRUE)))
+resMCC <- as.data.frame(rbind(overall, bySamples))
+names(resMCC) <-c( "total", "At","Dt")
+resMCC
+
+
 ###############
 
 ## prepare explainatory variables for analysis
@@ -1130,8 +1233,8 @@ res <- data.frame(gene, sample, tissue, rep, geneLenM, percentageEffectM, expres
 # discrepancy very tricky:
 # res$discrepancy0 <- res$discrepancy
 # res$discrepancy0[discrepancy>30] <- NA
-resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)), as.numeric(as.matrix(accuracyA)), as.numeric(as.matrix(accuracyD)), as.numeric(as.matrix(precisionA)), as.numeric(as.matrix(precisionD)), as.numeric(as.matrix(FstatA)), as.numeric(as.matrix(FstatD)))
-names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","accuracyA", "accuracyD", "precisionA", "precisionD", "FstatA", "FstatD")
+resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)), as.numeric(as.matrix(accuracyA)), as.numeric(as.matrix(accuracyD)), as.numeric(as.matrix(precisionA)), as.numeric(as.matrix(precisionD)), as.numeric(as.matrix(FstatA)), as.numeric(as.matrix(FstatD)), as.numeric(as.matrix(MCC)), as.numeric(as.matrix(MCCAn)), as.numeric(as.matrix(MCCDn)))
+names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","accuracyA", "accuracyD", "precisionA", "precisionD", "FstatA", "FstatD","MCC","MCCAn","MCCDn")
 
 ## plot and save results
 hylite<-res
@@ -1152,9 +1255,11 @@ textplot(round(resPrec*100,2))
 mtext("Precision (%)")
 textplot(round(resFstat*100,2))
 mtext("F measure (%)")
+textplot(round(resMCC*100,2))
+mtext("MCC (%)")
 dev.off()
 
-hyliteSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, Accuracy=resAccu, Precision=resPrec, Fmeasure=resFstat)
+hyliteSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, Accuracy=resAccu, Precision=resPrec, Fmeasure=resFstat, MCC=resMCC)
 
 save(hylite, hyliteH, hyliteSummary, file="s2.assign_eval.hylite.Rdata")
 
