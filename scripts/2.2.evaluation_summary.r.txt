@@ -1,0 +1,42 @@
+
+R version 3.3.2 (2016-10-31) -- "Sincere Pumpkin Patch"
+Copyright (C) 2016 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin13.4.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
++ {
++     usr <- par("usr"); on.exit(par(usr))
++     par(usr = c(0, 1, 0, 1))
++     r <- abs(cor(x, y, use="complete.obs"))
++     txt <- format(c(r, 0.123456789), digits=digits)[1]
++     txt <- paste(prefix, txt, sep="")
++     if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
++     text(0.5, 0.5, txt, cex = cex.cor * r)
++ }
+> 
+> 
+> #########################
+> ######### summary #######
+> #########################
+> library(ggplot2)
+> load("s2.assign_eval.polycat.Rdata")
+Error in readChar(con, 5L, useBytes = TRUE) : cannot open the connection
+Calls: load -> readChar
+In addition: Warning message:
+In readChar(con, 5L, useBytes = TRUE) :
+  cannot open compressed file 's2.assign_eval.polycat.Rdata', probable reason 'No such file or directory'
+Execution halted

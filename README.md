@@ -57,7 +57,7 @@ For PolyCat and HyLiTE, ***Efficiency*** measures the proportion of total reads 
 
 ***Discrepancy*** is like the percentage error of expected total diploid read counts, as abs(exp-obs)/exp.
 
-Additionally from the perspective of [Precision and recall](https://en.wikipedia.org/wiki/Precision_and_recall), we obtained TP, TN, FP, FN from the diploid datasets for calculation. For example, At precision = A2.At/(A2.At + D5.At), recall = A2.At/(A2.At + A2.Dt); the recall is equivalent to previous ***Accuracy*** calculated for homoeologs. ***F measure*** combines precision and recall for evaluation: F= 2x(precision x recall) / (precision + recall).
+Additionally from the perspective of [Precision and recall](https://en.wikipedia.org/wiki/Precision_and_recall), we obtained TP, TN, FP, FN from the diploid datasets for calculation. For example, At precision = A2.At/(A2.At + D5.At), recall = A2.At/(A2.At + A2.Dt); the recall is equivalent to previous ***Accuracy*** calculated for homoeologs. ***F measure*** combines precision and recall for evaluation: F= 2x(precision x recall) / (precision + recall). ***MCC*** provides another balanced measure of binary classification.
 
 #### Scripts
 
@@ -79,19 +79,31 @@ Additionally from the perspective of [Precision and recall](https://en.wikipedia
 
 `[method]` as "polycat", "hylite", "rsem", "salmon", "kallisto".
 
+### Step 3. Differential gene expression analysis
+
+Considering the differentially expressed genes between homoeologs resulted from diploid datasets as "Expected" (A2D5), we ask how homoeolog-specific read estimation affect the "Observed" (ADs) lists of DE genes. Two DE analysis algorithms - DESeq2 and EBSeq, in combination with five homoeolog read estimation methods (polycat, hylite, rsem, salmon, kallisto) were tested. The detection of "Expected" DE genes can be seen as a binary decision problem, which were evaluated with Sensitivity (=recall), Specificity, Precision, F statistics, MCC, ROC curves and AUC. 
+
+#### Scripts
+
+* [3.differential_expression.r](scripts/3.differential_expression.r) 
+
+#### Explanation of output files
+
+* `s3.DE.summary.txt`............ summary table of DE gene numbers between A vs D.
+* `s3.DE.summary.pdf`............ histogram and pairs plot of metrics and etc.
+* `s3.DE.evals.txt`............ summary table of Sensitivity (=recall), Specificity, Precision, F statistics, and MCC.
+* `s3.DE.evals.pdf`............ scatter plot of observed vs. expected log2FoldChanges.
+* `s3.DE.ROC.txt`............ summary table of ROC curves and AUC.
+* `s3.DE.ROC.pdf`............ ROC plots
+* `s3.DE.performance.pdf`............ boxplot of DE number and binary classification metrics. **Important**
+* `3.differential_expression.eval.rout.txt`............ ANOVA test results.
+
 
 
 
 # bookmark, below NOT cleaned up yet
 
-### Differential gene expression analysis
-* [DE.r](DE033017.r) - Differential expression analysis using DESeq2 and EBSeq; the detection of 'true' DE genes according to reference dataset can be seen as a binary decision problem, where the performances of DE algorithms (DESeq2 vs EBSeq) in combination with homoeolog read estimation (polycat vs rsem vs hylite) were evaluated with ROC curves and AUC.  
 
-#### Scripts
-
-#### Output read count tables:
-
-#### Explanation of other output files
 
 
 ### Differential gene-pair coexpression analysis

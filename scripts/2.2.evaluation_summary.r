@@ -20,7 +20,6 @@ load("s2.assign_eval.hylite.Rdata")
 load("s2.assign_eval.salmon.Rdata")
 load("s2.assign_eval.kallisto.Rdata")
 
-pdf("s2.assign_eval.summary.pdf")
 
 
 ## check sample order
@@ -57,20 +56,6 @@ for(i in metrics){
     sumTbl[[i]] = temp
 }
 print(sumTbl)
-# bar plots not very useful
-library(reshape)
-plotMetric=function(x, main=""){
-    x$method=rownames(x)
-    df<-melt(x,ids="method")
-    df$method<- factor(df$method,levels = methods) # my order
-    p<-ggplot(df, aes(x=method,y=value, fill=method))+ geom_bar(stat="identity", position=position_dodge()) +  geom_text( aes(label = round(value,4), y = value - 0.05), position = position_dodge(0.9), vjust = 0)+ facet_grid(variable~.) + ggtitle(main)
-    print(p)
-}
-for(i in names(sumTbl)){
-    plotMetric(sumTbl[[i]],i)
-}
-dev.off()
-
 
 ## gene-wise metrics comparison, noting that sample order is different in hylite
 message("Compare metrics between methods: ")
@@ -88,7 +73,7 @@ for(i in 1:ncol(pw)){
         print( t.test(res1[[m]][select],res2[[m]][select], paired=TRUE) )
         print( wilcox.test(res1[[m]][select],res2[[m]][select], paired=TRUE) )
     }
-
+    
 }
 
 # compare At vs Dt
@@ -133,5 +118,19 @@ for(i in methods){
         data=Data)
         
     }
-    
 }
+
+# bar plots not very useful
+library(reshape)
+plotMetric=function(x, main=""){
+    x$method=rownames(x)
+    df<-melt(x,ids="method")
+    df$method<- factor(df$method,levels = methods) # my order
+    p<-ggplot(df, aes(x=method,y=value, fill=method))+ geom_bar(stat="identity", position=position_dodge()) +  geom_text( aes(label = round(value,4), y = value - 0.05), position = position_dodge(0.9), vjust = 0)+ facet_grid(variable~.) + ggtitle(main)
+    print(p)
+}
+pdf("s2.assign_eval.summary.pdf")
+for(i in names(sumTbl)){
+    plotMetric(sumTbl[[i]],i)
+}
+dev.off()
