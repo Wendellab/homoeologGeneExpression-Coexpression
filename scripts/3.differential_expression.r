@@ -292,25 +292,19 @@ DEauc[,4] <- as.numeric(DEauc[,4])
 library(ggplot2)
 pdf("s3.DE.performance.pdf")
 # significant DEs: smaller numbers (p=0) in EBseq than DEseq, fewer observed than expected p=0.03, no significance difference between partitioning methods.
-ggplot(data=DEsummary, aes(x=type, y=sig, fill=DE_method)) + geom_boxplot() + facet_grid(.~compr) + theme(legend.position="bottom")
-ggplot(data=DEsummary, aes(x=type, y=sig, fill=mapping)) + geom_boxplot() + facet_grid(.~compr) + theme(legend.position="bottom")
-# sensitiviy: deseq2>ebseq, polycat>>>hylite
-ggplot(data=DEeval, aes(x=mapping, y=sensitivity, fill=DE_method)) + geom_boxplot()
-ggplot(data=DEeval, aes(x=DE_method, y=sensitivity, fill=mapping)) + geom_boxplot()
-ggplot(data=DEeval, aes(x=mapping, y=specificity, fill=DE_method)) + geom_boxplot()
-ggplot(data=DEeval, aes(x=DE_method, y=specificity, fill=mapping)) + geom_boxplot()
-ggplot(data=DEeval, aes(x=mapping, y=precision, fill=DE_method)) + geom_boxplot()
-ggplot(data=DEeval, aes(x=DE_method, y=precision, fill=mapping)) + geom_boxplot()
-ggplot(data=DEeval, aes(x=mapping, y=Fstat, fill=DE_method)) + geom_boxplot()
-ggplot(data=DEeval, aes(x=DE_method, y=Fstat, fill=mapping)) + geom_boxplot()
-ggplot(data=DEeval, aes(x=mapping, y=MCC, fill=DE_method)) + geom_boxplot()
-ggplot(data=DEeval, aes(x=DE_method, y=MCC, fill=mapping)) + geom_boxplot()
+ggplot(data=DEsummary, aes(x=mapping, y=sig, fill=type)) +scale_fill_brewer(palette=7) + geom_boxplot() + facet_grid(.~DE_method) + theme(legend.position="bottom") + ggtitle("Number of DE genes")
+ggplot(data=DEsummary, aes(x=mapping, y=sig, fill=type)) + geom_boxplot() + facet_grid(.~compr) + theme(legend.position="bottom") + ggtitle("Number of DE genes, check across sample condition")
+# binary classification
+ggplot(data=DEeval, aes(x=mapping, y=sensitivity, fill=DE_method)) + geom_boxplot() + theme(legend.position="bottom") + ggtitle("Sensitivity")
+ggplot(data=DEeval, aes(x=mapping, y=specificity, fill=DE_method)) + geom_boxplot() + theme(legend.position="bottom") + ggtitle("Specificity")
+ggplot(data=DEeval, aes(x=mapping, y=precision, fill=DE_method)) + geom_boxplot() + theme(legend.position="bottom") + ggtitle("Precision")
+ggplot(data=DEeval, aes(x=mapping, y=Fstat, fill=DE_method)) + geom_boxplot() + theme(legend.position="bottom") + ggtitle("F1 score")
+ggplot(data=DEeval, aes(x=mapping, y=MCC, fill=DE_method)) + geom_boxplot() + theme(legend.position="bottom") + ggtitle("MCC")
 # low sensitivity from Hylite, specificity are similiar
 # EBseq shows higher specificity than DEseq, probably due to higher stringency indicated by fewer DEs.
 ## plot AUC
 # significant DEs: DE_method - deseq2 detects more DEs than ebseq
-ggplot(data=DEauc, aes(x=mapping, y=AUC, fill=DE_method)) + geom_boxplot()
-ggplot(data=DEauc, aes(x=DE_method, y=AUC, fill=mapping)) + geom_boxplot()
+ggplot(data=DEauc, aes(x=mapping, y=AUC, fill=DE_method)) + geom_boxplot()+ theme(legend.position="bottom") + ggtitle("AUC")
 dev.off()
 
 ## plot DE numbers by comp
@@ -325,46 +319,42 @@ dev.off()
 
 
 # ANOVA tests
+
 # DE
-fit<- lm(sig~compr+mapping+DE_method+type,data=DEsummary)
+fit<- lm(sig~mapping+DE_method+type,data=DEsummary)
+anova(fit)
 summary(a1<-aov(fit))
 TukeyHSD(x=a1, conf.level=0.95)
 
 # sensitivity
-fit<- lm(sensitivity~compr+mapping+DE_method,data=DEeval)
+fit<- lm(sensitivity~mapping+DE_method,data=DEeval)
 summary(a1<-aov(fit))
-TukeyHSD(x=a1, 'DE_method', conf.level=0.95)  # ebseq > deseq, sig
-TukeyHSD(x=a1, 'mapping', conf.level=0.95)    # polycat = kallisto > salmon=hylite = rsem
+TukeyHSD(x=a1, conf.level=0.95)
 
-# plot specificity
-fit<- lm(specificity~compr+mapping+DE_method,data=DEeval)
+# specificity
+fit<- lm(specificity~mapping+DE_method,data=DEeval)
 summary(a1<-aov(fit))
-TukeyHSD(x=a1, 'DE_method', conf.level=0.95)
-TukeyHSD(x=a1, 'mapping', conf.level=0.95)
+TukeyHSD(x=a1, conf.level=0.95)
 
-# plot precision
-fit<- lm(precision~compr+mapping+DE_method,data=DEeval)
+# precision
+fit<- lm(precision~mapping+DE_method,data=DEeval)
 summary(a1<-aov(fit))
-TukeyHSD(x=a1, 'DE_method', conf.level=0.95)
-TukeyHSD(x=a1, 'mapping', conf.level=0.95)
+TukeyHSD(x=a1, conf.level=0.95)
 
-# plot Fstat
-fit<- lm(Fstat~compr+mapping+DE_method,data=DEeval)
+# Fstat
+fit<- lm(Fstat~mapping+DE_method,data=DEeval)
 summary(a1<-aov(fit))
-TukeyHSD(x=a1, 'DE_method', conf.level=0.95)
-TukeyHSD(x=a1, 'mapping', conf.level=0.95)
+TukeyHSD(x=a1, conf.level=0.95)
 
-# plot MCC
-fit<- lm(MCC~compr+mapping+DE_method,data=DEeval)
+# MCC
+fit<- lm(MCC~mapping+DE_method,data=DEeval)
 summary(a1<-aov(fit))
-TukeyHSD(x=a1, 'DE_method', conf.level=0.95)
-TukeyHSD(x=a1, 'mapping', conf.level=0.95)
+TukeyHSD(x=a1, conf.level=0.95)
 
-## plot AUC
-fit<- lm(AUC~compr+mapping+DE_method,data=DEauc)
+## AUC
+fit<- lm(AUC~mapping+DE_method,data=DEauc)
 summary(a1<-aov(fit))
-TukeyHSD(x=a1, 'DE_method', conf.level=0.95)
-TukeyHSD(x=a1, 'mapping', conf.level=0.95)
+TukeyHSD(x=a1, conf.level=0.95)
 
 
 

@@ -1,12 +1,11 @@
-## Analysis by Guanjing Hu from Nov 5th, 2016
+## Analysis by Guanjing Hu on Oct, 2018
 ## updated from previous version: Eflen_Networks021616.r, Eflen_Networks051916.r, Eflen_Networks090816.r
 
 ssh hugj2006@bigram.ent.iastate.edu
-cd /home/hugj2006/jfw-lab/Projects/Eflen_networks
+cd /work/LAS/jfw-lab/hugj2006/eflen/output
 ln -s /home/hugj2006/jfw-lab/Papers/GroverEflen2015/count_files count_files021616
 screen -S eflen
-module load R
-# Module name: R                          Version: 3.3.1
+module load r/3.5.0-py2-ufvuwmm
 R
 # start R analysis
 
@@ -30,5 +29,9 @@ biocLite(c("GO.db", "KEGG.db", "topGO", packageNames, "hgu133a.db", "hgu95av2.db
 install.packages("WGCNA")
 install.packages(c("dynamicTreeCut", "cluster", "flashClust", "Hmisc", "reshape", "foreach", "doParallel") )
 
+biocLite(("multtest","pcaMethods"))
+install.packages("DGCA")
+install.packages("DiffCorr")
+install.packages("corrplot")
 
 sessionInfo()

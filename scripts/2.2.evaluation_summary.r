@@ -133,4 +133,46 @@ pdf("s2.assign_eval.summary.pdf")
 for(i in names(sumTbl)){
     plotMetric(sumTbl[[i]],i)
 }
+# Library
+library(fmsb)
+ma = rep(1,4)
+mi =rep(0.8,4)
+a<- with(sumTbl,cbind(Precision$At,Accuracy$At, Fmeasure$At, MCC$total))
+d<- with(sumTbl,cbind(Precision$Dt,Accuracy$Dt, Fmeasure$Dt, MCC$total))
+rownames(a) = rownames(sumTbl$MCC)
+rownames(d) = rownames(sumTbl$MCC)
+colnames(a) = c("Precision","recall","F1 score", "MCC")
+colnames(d)= c("Precision","recall","F1 score", "MCC")
+a=as.data.frame(rbind(ma,mi,a))*100
+d=as.data.frame(rbind(ma,mi,d))*100
+#==================
+# Plot 1: Default radar chart proposed by the library:
+radarchart(a)
+radarchart(d)
+#==================
+# Plot 2: Same plot with custom features
+library(scales)
+#show_col(hue_pal()(5))
+colors = hue_pal()(5)
+source("addTrans.r")
+colors_border=addTrans(colors,240)
+colors_in=addTrans(colors,40)
+radarchart(a, axistype=1,
+    #custom polygon
+    pcol=colors_border, pfcol=colors_in, plwd=4, plty=1,
+    #custom the grid
+    cglcol="grey", cglty=1, axislabcol="grey", caxislabels=seq(80,100,5), cglwd=0.8,
+    #custom labels
+    vlcex=0.8 , title="At" )
+legend(x=0.7, y=1, legend = rownames(a[-c(1,2),]), bty = "n", pch=20 , col=colors_border , text.col = "grey", cex=1.2, pt.cex=3)
+radarchart(d, axistype=1,
+    #custom polygon
+    pcol=colors_border, pfcol=colors_in, plwd=4, plty=1,
+    #custom the grid
+    cglcol="grey", cglty=1, axislabcol="grey", caxislabels=seq(80,100,5), cglwd=0.8,
+    #custom labels
+    vlcex=0.8 , title="Dt" )
+legend(x=0.7, y=1, legend = rownames(d[-c(1,2),]), bty = "n", pch=20 , col=colors_border , text.col = "grey", cex=1.2, pt.cex=3)
+
 dev.off()
+

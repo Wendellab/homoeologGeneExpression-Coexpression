@@ -4,12 +4,19 @@
 * Cotton seed development - 12 samples (4 time points x 3 biological replicates) per diploid or polyploid species, as deposited in NCBI BioProject [PRJNA179447](https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA179447). SE reads.
 * Flowering time regulation - 23 samples (8 tissue types x 3 biological replicates; only 2 reps for SDM) per diploid or polyploid species, as partially described [here](https://github.com/Wendellab/FloweringTimeDomestication/blob/master/sample.info). PE reads.
 
+### LSS location
+* 33 SE seed RNA-seq files. `smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/Projects/Eflen/seed_for_eflen_paper/fastq/*fq.gz` **Please exclude A2-20-R2.cut.fq.gz and D5-20-R2.cut.fq.gz.**
+* 132 PE flowering time RNA-seq files. `smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/Projects/Eflen/flowerTimeDataset/fastq/*fq.gz`
+
+
 ## RNA-seq mapping and homoeolog read estimation
 * GNASP mapping followed by PolyCat homoeolog read participation: bash scritps for SE ([gsnap2polycat_120116.sh](scripts/gsnap2polycat_120116.sh)) and PE ([gsnap2polycat_PE.sh](scripts/gsnap2polycat_PE.sh)) reads.
 * Bowtie2 mapping against reference transcripts followeed by RSEM read estimation: SE ([here](https://github.com/huguanjing/AD1_RNA-seq/blob/master/bowtie2rsem.sh)) and PE ([bowtie2rsem_PE.sh](scripts/bowtie2rsem_PE.sh)) bash scrpts.
 * Bowtie2 mapping against D5 reference transcripts followed by HyLite SNP detection and read participation: SE bash stricpt ([bowtie2hylite.sh](scripts/bowtie2hylite.sh) with protocol file [se_protocol_file.txt](scripts/se_protocol_file.txt).
-* SALMON mapping and read estimation against reference transcripts: [salmon.flower.sh](scripts/salmon.flower.sh) and [salmon.seed.sh](scripts/salmon.seed.sh)
-* kallisto mapping and read estimation against reference transcripts: [kallisto.flower.sh](scripts/kallisto.flower.sh) and [kallisto.seed.sh](scripts/kallisto.seed.sh)
+* [salmon](https://combine-lab.github.io/salmon/) mapping and read estimation against reference transcripts: [salmon.flower.sh](scripts/salmon.flower.sh) and [salmon.seed.sh](scripts/salmon.seed.sh)
+* [kallisto](https://pachterlab.github.io/kallisto/) mapping and read estimation against reference transcripts: [kallisto.flower.sh](scripts/kallisto.flower.sh) and [kallisto.seed.sh](scripts/kallisto.seed.sh)
+
+RSEM, salmon and kallisto used A2D5 transcript sequences as reference, which were derived from the D5 gene models and A2-D5 SNP index (`smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/GenomicResources/pseudogenomes/A2D5.transcripts.fa`). HyLite uses the D5 only transcript sequences for reference (`smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/Projects/Eflen/seed_for_eflen_paper/bowtie2hylite/D5.transcripts.fa`)
 
 ## Data analysis in R - workflow and scripts
 
@@ -96,9 +103,68 @@ Considering the differentially expressed genes between homoeologs resulted from 
 * `s3.DE.ROC.txt`............ summary table of ROC curves and AUC.
 * `s3.DE.ROC.pdf`............ ROC plots
 * `s3.DE.performance.pdf`............ boxplot of DE number and binary classification metrics. **Important**
-* `3.differential_expression.eval.rout.txt`............ ANOVA test results.
+* `s3.anovaTests.rout.txt`............ ANOVA test results.
+
+### Step 4. Differential gene-pair coexpression analysis
+
+Coexpression of homoeologs and between all possible gene pairs were measured by Pearson's coefficients and then classified by contrasting *estimated* versus *true* patterns. Nine classes of DC patterns were resulted and tested for enrichment.
+
+#### Scripts
+* [4.DC.homoeoP.r](scripts/4.DC.homoeoP.r) 
+* [4.DC.all.r](scripts/4.DC.all.r) 
+
+#### Explanation of output files
+* `s4.DC.homoeoPair.Rdata`............ result tables of homoeolog DC analysis for each pipeline normalized by rld and log2rpkm.
+* `s4.DC.homoeoPair.pdf`............ enrichment analysis of DC categories between homoeolog gene pairs.
+* `s4.DC.all.Rdata`............ summary result tables of all gene pairs DC analysis for each pipeline normalized by rld and log2rpkm.
+* `s4.DC.all.pdf`............ enrichment analysis of DC categories for all gene pairs.
+
+###  Step 5. Coexpression network construction
+
+True and estimated homoeolog read count tables from 10 datasets (five mapping pipelines followed by rld or log2rpkm transformation) were subjected to weighted and unweighted coexpression network construction. The same set of genes were included in all networks for fair comparison.
+
+#### Scripts
+
+* [5a.WGCNA.r](scripts/5a.WGCNA.r) 
+* [5b.BNA.r](scripts/5b.BNA.r) 
+
+#### Explanation of output files
+
+**WGCNA**: `[method]` as polycat, hylite, rsem, salmon or kallisto; `[transfomation]` as rld or log2rpkm.
 
 
+* `R-05-dataInput.[method]_[transfomation].RData`............ network input multiExpr with rlog or log2rpkm transformation
+* `s5.multiExpr.clustering.pdf`............ clustering analysis of network input multiExpr.
+* `R-05-chooseSoftThreshold.Rdata`............ network input multiExpr with log2rpkm transformation
+* `s5.wgcna.choosePower_[method]_[transfomation].pdf`............ plot of choose soft threshold
+
+**Binary networks**
+
+* `5.BNA.rout.txt`............ log history of binary network analysis.
+* `s5.bna.AUC.Rdata`............ plot of choose soft threshold
+
+
+### Step 6. Assessment of network topology and functional connectivity
+ 
+
+#### Scripts
+
+* [6.prepFunctionCategory.r](scripts/6.prepFunctionCategory.r)
+* [6.FUN.r](scripts/6.FUN.r)
+* [6a.NC.r](scripts/6a.NC.r)
+* [6b.FC.r](scripts/6b.FC.r)
+
+#### Explanation of output files
+
+* `GOnKEGGnGLs.Rdata`............ functional categories of GO, .
+* `s5.bna.AUC.Rdata`............ plot of choose soft threshold
+
+### Step 7. Case study of allopolyploid network using polycat
+ 
+
+#### Scripts
+
+#### Explanation of output files
 
 
 # bookmark, below NOT cleaned up yet
@@ -106,33 +172,9 @@ Considering the differentially expressed genes between homoeologs resulted from 
 
 
 
-### Differential gene-pair coexpression analysis
-* [DC.all.r](DC.all.r) - Differential coexpression tests and classification for all gene pairs; scripts optimized for LARGE network (>40,000 genes) from DiffCorr and DGCA functions
-* [DC.homoeoP.r](DC.homoeoP.r) - Differential coexpression tests and classification for At-Dt homoeo-pairs
-
-#### Scripts
-
-#### Output read count tables:
-
-#### Explanation of other output files
 
 
-### Coexpression network construction
+
+
+
 * [Eflen_Networks110516.r](Eflen_Networks110516.r)
-
-#### Scripts
-
-#### Output read count tables:
-
-#### Explanation of other output files
-
-
-### Assessment of network topology and functional connectivity
-* 
-
-#### Scripts
-
-#### Output read count tables:
-
-#### Explanation of other output files
-
