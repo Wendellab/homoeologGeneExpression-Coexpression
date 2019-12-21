@@ -16,21 +16,13 @@ module load rsem
 rsem-prepare-reference --gtf D5.primaryOnly.gtf --bowtie2 Dgenome2_13.fasta D5
 # D5.transcripts.fa contains all extracted transcript sequences from "exon" features, and *.bt2 are Bowtie2 indices.
 
-# Next, prepare fq files
-mkdir fastq
-cd fastq
-cp ~/jfw-lab/Projects/Eflen/seed_for_eflen_paper/eflen_seed/*cut.fq.gz .
-## uncompress all gz files to fq
-gunzip -c A2-10-R1.cut.fq.gz > A2-10-R1.cut.fq
+# ---------- Run bowtie2 mapping to obtain SAM files--------------
+# ----------   code skipped --------------------------------------
 
-# Run bowtie2 mapping
-module load python/2
-bowtie2-build D5.transcripts.fa D5.transcripts
-mkdir sam
-bowtie2 -x D5.transcripts -U fastq/A2-10-R1.cut.fq -S sam/A2-10-R1.sam -N 1 -p 8
-
-# Run HyLite, note that bowtie2 2.7 is preferred
-HyLiTE -v -S -f sam2_protocol_file.txt -r D5.transcripts.fa -n results030917 >cmd0309.log 2>&1
+## 2018-1-12 HyLiTE has now been updated and rewritten in Python 3
+# module load python/3.6.3-u4oaxsb samtools/1.9-k6deoga py-scipy/1.1.0-py3-pzig4lr
+# python3 HyLiTE-2.0.1-py3-none-any.whl --help
+HyLiTE -v -S -f sam2_protocol_file.txt -r D5.transcripts.fa -n resultsXXXXXX >cmdXXXXXX.log 2>&1
 ## Options as:
 ## -v turns on verbose runtime comments
 ## -f specifies the protocol file
@@ -40,7 +32,7 @@ HyLiTE -v -S -f sam2_protocol_file.txt -r D5.transcripts.fa -n results030917 >cm
 ## -b use pre built ref 
 
 # Inspect resutls
-# HyLiTE output files in folder "results030917"
+# HyLiTE output files in folder "resultsXXXXXX"
 # Explanation of HyLiTE output formats: https://hylite.sourceforge.io/outformat.html#outformat
-# --- total read counts: "results030917.expression.txt"
-# --- allele specific counts: "results030917.AD.AD-10-R1.read.txt", etc.
+# --- total read counts: "resultsXXXXXX.expression.txt"
+# --- allele specific counts: "resultsXXXXXX.AD.AD-10-R1.read.txt", etc.
