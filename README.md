@@ -118,7 +118,7 @@ True and estimated homoeolog read count tables from 10 datasets (five mapping pi
 
 #### Scripts
 
-* [5a.WGCNA.prep.r](scripts/5a.WGCNA..prep.r) 
+* [5a.WGCNA.prep.r](scripts/5a.WGCNA.prep.r) 
 * [5a.WGCNA.r](scripts/5a.WGCNA.r) ([5a.slurm](scripts/5a.slurm))
 * [5a.WGCNA.post.r](scripts/5a.WGCNA.post.r)
 * [5b.BNA.r](scripts/5b.BNA.r) 
