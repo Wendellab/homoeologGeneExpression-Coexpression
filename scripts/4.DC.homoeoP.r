@@ -82,7 +82,7 @@ mm # "hylite_rld"   "hylite_rpkm"  "polycat_rld"  "polycat_rpkm" "rsem_rld"   "r
 # summarize sig results
 cat<-c("+/+","+/0","+/-","0/+", "0/0", "0/-", "-/+",  "-/0", "-/-")
 res<-c("dataset","genes","sigP",paste0("P",cat))
-for(i in m)
+for(i in mm)
 {
     x<-get(i)
     temp<-c(i, nrow(x), length(which(x$pValDiff<0.05)), as.numeric(table(x$class[x$pValDiff<0.05]))[-1])
