@@ -12,7 +12,7 @@
 ## RNA-seq mapping and homoeolog read estimation
 * GNASP mapping followed by PolyCat homoeolog read participation: bash scritps for SE ([gsnap2polycat_120116.sh](scripts/gsnap2polycat_120116.sh)) and PE ([gsnap2polycat_PE.sh](scripts/gsnap2polycat_PE.sh)) reads.
 * [RSEM](http://deweylab.github.io/RSEM/) runs Bowtie2 mapping by default against reference transcripts followed by read estimation: SE ([here](https://github.com/huguanjing/AD1_RNA-seq/blob/master/bowtie2rsem.sh)) and PE ([bowtie2rsem_PE.sh](scripts/bowtie2rsem_PE.sh)) bash scrpts.
-* [HyLite](https://hylite.sourceforge.io/index.html) automates Bowtie2 mapping against D5 reference transcripts followed by SNP detection and read participation: SE bash script ([bowtie2hylite.sh](scripts/bowtie2hylite.sh)) with protocol file [se_protocol_file.txt](scripts/se_protocol_file.txt).
+* [HyLite](https://hylite.sourceforge.io/index.html) automates Bowtie2 mapping against D5 reference transcripts followed by SNP detection and read participation: bash script ([bowtie2hylite.sh](scripts/bowtie2hylite.sh)) with protocol file [sam2_protocol_file.txt](scripts/sam2_protocol_file.txt).
 * [salmon](https://combine-lab.github.io/salmon/) mapping and read estimation against reference transcripts: [salmon.flower.sh](scripts/salmon.flower.sh) and [salmon.seed.sh](scripts/salmon.seed.sh)
 * [kallisto](https://pachterlab.github.io/kallisto/) mapping and read estimation against reference transcripts: [kallisto.flower.sh](scripts/kallisto.flower.sh) and [kallisto.seed.sh](scripts/kallisto.seed.sh)
 
