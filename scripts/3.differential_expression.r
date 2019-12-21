@@ -151,6 +151,50 @@ names(DEsummary)<-DEs[1,]
 DEsummary$sig<-as.numeric(DEsummary$A_up) + as.numeric(DEsummary$D_up)
 write.table(DEsummary,"s3.DE.summary.txt",row.names=FALSE,sep="\t")
 
+# check bias
+DEsummary$chisqP = apply(DEsummary[,5:6],1, function(x)chisq.test(x)$p.value)
+DEsummary$balance = ifelse(DEsummary$A_up-DEsummary$D_up>0, "A","D")
+DEsummary$balance[DEsummary$chisqP>0.05] = "N"
+unique(DEsummary[DEsummary$type=="exp",c(1,3,4)] == DEsummary[DEsummary$type=="obs",c(1,3,4)]) #TRUE
+x<-DEsummary[DEsummary$type=="exp",c(1,3,4)]
+x$exp = DEsummary$balance[DEsummary$type=="exp"]
+x$obs = DEsummary$balance[DEsummary$type=="obs"]
+x$pattern=factor(paste0(x$exp,"/",x$obs),levels=c("A/A","D/D","N/N","A/D","D/A","A/N","D/N","N/A","N/D"))
+x$dataset= paste0(x$mapping,".",x$DE_method)
+xtabs(~dataset+pattern, data=x)
+#                 pattern
+# dataset          A/A D/D N/N A/D D/A A/N D/N N/A N/D
+#   hylite.deseq     8   0   0   0   0   2   0   2   0
+#   hylite.ebseq     0   4   0   2   0   0   1   1   4
+#   kallisto.deseq   7   0   0   3   0   1   0   1   0
+#   kallisto.ebseq   0   3   2   2   1   0   0   2   2
+#   polycat.deseq    6   0   0   1   0   2   0   2   1
+#   polycat.ebseq    1   3   2   1   0   0   0   3   2
+#   rsem.deseq      12   0   0   0   0   0   0   0   0
+#   rsem.ebseq       0   2   0   2   0   0   0   0   8
+#   salmon.deseq     8   0   0   3   0   1   0   0   0
+#   salmon.ebseq     0   3   2   1   1   0   0   2   3
+##### Take-home message, the pattern of balance is quite random between obs and exp
+
+# obs vs exp
+R<-c("mapping","DE_method","compr","obs","exp","overlap","union")
+obsL<-grep("obs.*vs.*txt$",list.files("DE/"),value=TRUE)
+for(i in obsL){
+    labels<-unlist(strsplit(i,"[.]") )[1:4]
+    obs = read.table(file=paste0("DE/", i), sep="\t",header=TRUE)
+    exp = read.table(file=paste0("DE/", gsub("obs","exp",i)), sep="\t",header=TRUE)
+    if(labels[3]=="deseq"){
+        obsDEGs = rownames(obs)[obs$padj<0.05&!is.na(obs$padj)]
+        expDEGs = rownames(exp)[exp$padj<0.05&!is.na(exp$padj)]
+    }
+    if(labels[3]=="ebseq"){
+        obsDEGs = rownames(obs)[obs$PostFC<1&obs$Status=="DE"]
+        expDEGs = rownames(exp)[exp$PostFC<1&exp$Status=="DE"]
+    }
+    R<- rbind(R, c(labels[-2], length(obsDEGs),length(expDEGs),length(intersect(obsDEGs,expDEGs)),length(union(obsDEGs,expDEGs))))
+}
+print(R)
+write.table(R,"s3.DE.summary2.txt",row.names=FALSE,sep="\t")
 
 #######################################
 ##### sensitivity and specificity #####
@@ -158,9 +202,9 @@ write.table(DEsummary,"s3.DE.summary.txt",row.names=FALSE,sep="\t")
 # compare oobs and exp
 DEsummary<-read.table("s3.DE.summary.txt",header=TRUE,sep="\t")
 DEsummary[,-c(1:4)] <- apply(DEsummary[,-c(1:4)],2,as.numeric)
-# batch<-cbind(paste0(unique(DEsummary$compr),".A"),paste0(unique(DEsummary$compr),".D"))
+batch<-cbind(paste0(unique(DEsummary$compr),".A"),paste0(unique(DEsummary$compr),".D"))
 source("addTrans.r")
-eval<-c("compr","mapping","DE_method","exp.sig","obs.sig","both.sig","sensitivity","specificity","precision","Fstat","MCC")
+eval<-c("compr","mapping","DE_method","exp.sig","obs.sig","both.sig","sensitivity","specificity","precision","accuracy","Fstat","MCC")
 pdf("s3.DE.evals.pdf")
 par(mfrow=c(3,2))
 for(compr in paste0(batch[,1],"vs",batch[,2]) )
@@ -196,11 +240,13 @@ for(compr in paste0(batch[,1],"vs",batch[,2]) )
             specificity <- TN/(TN+FP)
             # precision, postivie predictive value, TP/(TP+FP)
             precision <- TP/(TP+FP)
+            # accuracy
+            accuracy <-(TP+TN)/(TP+TN+FP+FN)
             # F measure
             Fstat =2*TP/(2*TP+FP+FN)
             # MCC
             MCC = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
-            eval<-rbind(eval,c(compr,mapping, method, P,TP+FP,TP,sensitivity,specificity,precision,Fstat,MCC))
+            eval<-rbind(eval,c(compr,mapping, method, P,TP+FP,TP,sensitivity,specificity,precision,accuracy,Fstat,MCC))
             
             # plot log2 fold changes
             colors <- rep(addTrans("grey",50), length(row.names(exp)))
@@ -288,24 +334,33 @@ DEeval[,-c(1:3)] <- apply(DEeval[,-c(1:3)],2,as.numeric)
 DEauc<-read.table("s3.DE.ROC.txt",header=TRUE,sep="\t")
 DEauc[,4] <- as.numeric(DEauc[,4])
 
+# prep table
+aggregate(AUC~mapping+DE_method, range,data=DEauc)
+aggregate(precision~mapping+DE_method, range,data=DEeval)
+aggregate(sensitivity~mapping+DE_method, range,data=DEeval)
+aggregate(specificity~mapping+DE_method, range,data=DEeval)
+aggregate(accuracy~mapping+DE_method, range,data=DEeval)
+aggregate(Fstatus~mapping+DE_method, range,data=DEeval)
+aggregate(MCC~mapping+DE_method, range,data=DEeval)
+
+#
+
 # plots
 library(ggplot2)
 pdf("s3.DE.performance.pdf")
 # significant DEs: smaller numbers (p=0) in EBseq than DEseq, fewer observed than expected p=0.03, no significance difference between partitioning methods.
 ggplot(data=DEsummary, aes(x=mapping, y=sig, fill=type)) +scale_fill_brewer(palette=7) + geom_boxplot() + facet_grid(.~DE_method) + theme(legend.position="bottom") + ggtitle("Number of DE genes")
 ggplot(data=DEsummary, aes(x=mapping, y=sig, fill=type)) + geom_boxplot() + facet_grid(.~compr) + theme(legend.position="bottom") + ggtitle("Number of DE genes, check across sample condition")
-# binary classification
-ggplot(data=DEeval, aes(x=mapping, y=sensitivity, fill=DE_method)) + geom_boxplot() + theme(legend.position="bottom") + ggtitle("Sensitivity")
-ggplot(data=DEeval, aes(x=mapping, y=specificity, fill=DE_method)) + geom_boxplot() + theme(legend.position="bottom") + ggtitle("Specificity")
-ggplot(data=DEeval, aes(x=mapping, y=precision, fill=DE_method)) + geom_boxplot() + theme(legend.position="bottom") + ggtitle("Precision")
-ggplot(data=DEeval, aes(x=mapping, y=Fstat, fill=DE_method)) + geom_boxplot() + theme(legend.position="bottom") + ggtitle("F1 score")
-ggplot(data=DEeval, aes(x=mapping, y=MCC, fill=DE_method)) + geom_boxplot() + theme(legend.position="bottom") + ggtitle("MCC")
+library(reshape2)
+ss=rbind(melt(DEeval,id.vars=c("mapping","DE_method","compr"),measure.vars = c("precision","sensitivity","accuracy","Fstat","MCC")), melt(DEauc,id.vars=c("mapping","DE_method","compr"),measure.vars = c("AUC")) )
+ggplot(data=ss, aes(x=mapping, y=value, fill=DE_method)) + geom_boxplot() + theme(legend.position="bottom") + ggtitle("Performance measures") + facet_wrap(~variable)
+ggplot(data=ss, aes(x=mapping, y=value, fill=DE_method)) + geom_boxplot(lwd=0.2,position=position_dodge(0.8)) + theme_bw() +theme(panel.border=element_blank(),axis.line.x=element_line()) + theme(legend.position="bottom") + ggtitle("Performance measures") + facet_wrap(~variable)
+dev.off()
 # low sensitivity from Hylite, specificity are similiar
 # EBseq shows higher specificity than DEseq, probably due to higher stringency indicated by fewer DEs.
 ## plot AUC
 # significant DEs: DE_method - deseq2 detects more DEs than ebseq
-ggplot(data=DEauc, aes(x=mapping, y=AUC, fill=DE_method)) + geom_boxplot()+ theme(legend.position="bottom") + ggtitle("AUC")
-dev.off()
+
 
 ## plot DE numbers by comp
 pdf("s3.DE.summary.pdf")
@@ -355,9 +410,3 @@ TukeyHSD(x=a1, conf.level=0.95)
 fit<- lm(AUC~mapping+DE_method,data=DEauc)
 summary(a1<-aov(fit))
 TukeyHSD(x=a1, conf.level=0.95)
-
-
-
-
-
-            
