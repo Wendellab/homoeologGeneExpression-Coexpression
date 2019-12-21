@@ -5,16 +5,17 @@
 * Flowering time regulation - 23 samples (8 tissue types x 3 biological replicates; only 2 reps for SDM) per diploid or polyploid species, as partially described [here](https://github.com/Wendellab/FloweringTimeDomestication/blob/master/sample.info). PE reads.
 
 ### LSS location
-* 33 SE seed RNA-seq files. `smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/Projects/Eflen/seed_for_eflen_paper/fastq/*fq.gz` **Please exclude A2-20-R2.cut.fq.gz and D5-20-R2.cut.fq.gz.**
+* 33 SE seed RNA-seq files. `smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/Projects/Eflen/seed_for_eflen_paper/fastq/*fq.gz` **Exclude A2-20-R2.cut.fq.gz and D5-20-R2.cut.fq.gz.**
 * 132 PE flowering time RNA-seq files. `smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/Projects/Eflen/flowerTimeDataset/fastq/*fq.gz`
 
 
 ## RNA-seq mapping and homoeolog read estimation
 * GNASP mapping followed by PolyCat homoeolog read participation: bash scritps for SE ([gsnap2polycat_120116.sh](scripts/gsnap2polycat_120116.sh)) and PE ([gsnap2polycat_PE.sh](scripts/gsnap2polycat_PE.sh)) reads.
-* Bowtie2 mapping against reference transcripts followeed by RSEM read estimation: SE ([here](https://github.com/huguanjing/AD1_RNA-seq/blob/master/bowtie2rsem.sh)) and PE ([bowtie2rsem_PE.sh](scripts/bowtie2rsem_PE.sh)) bash scrpts.
-* Bowtie2 mapping against D5 reference transcripts followed by HyLite SNP detection and read participation: SE bash stricpt ([bowtie2hylite.sh](scripts/bowtie2hylite.sh) with protocol file [se_protocol_file.txt](scripts/se_protocol_file.txt).
+* [RSEM](http://deweylab.github.io/RSEM/) runs Bowtie2 mapping by default against reference transcripts followed by read estimation: SE ([here](https://github.com/huguanjing/AD1_RNA-seq/blob/master/bowtie2rsem.sh)) and PE ([bowtie2rsem_PE.sh](scripts/bowtie2rsem_PE.sh)) bash scrpts.
+* [HyLite](https://hylite.sourceforge.io/index.html) automates Bowtie2 mapping against D5 reference transcripts followed by SNP detection and read participation: SE bash script ([bowtie2hylite.sh](scripts/bowtie2hylite.sh)) with protocol file [se_protocol_file.txt](scripts/se_protocol_file.txt).
 * [salmon](https://combine-lab.github.io/salmon/) mapping and read estimation against reference transcripts: [salmon.flower.sh](scripts/salmon.flower.sh) and [salmon.seed.sh](scripts/salmon.seed.sh)
 * [kallisto](https://pachterlab.github.io/kallisto/) mapping and read estimation against reference transcripts: [kallisto.flower.sh](scripts/kallisto.flower.sh) and [kallisto.seed.sh](scripts/kallisto.seed.sh)
+
 
 RSEM, salmon and kallisto used A2D5 transcript sequences as reference, which were derived from the D5 gene models and A2-D5 SNP index (`smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/GenomicResources/pseudogenomes/A2D5.transcripts.fa`). HyLite uses the D5 only transcript sequences for reference (`smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/Projects/Eflen/seed_for_eflen_paper/bowtie2hylite/D5.transcripts.fa`)
 
@@ -56,39 +57,31 @@ LSS long term storage dir: `/lss/research/jfw-lab/Projects/Eflen/`
 
 ### Step 2. Evalutation of homoeolog read estimation
 
-Three metrics were calculated to evaluate the performance of homoeolog-specific read assignment - ***Efficiency***, ***Accuracy***, and ***Discrepancy***. 
+Knowing the true subgenome origin of each *in silico* polyploid ADs reads, we obtained the confusion matrix (TP, TN, FP, FN) to evaluate the homoeolog read classification. Several metrics including ***Precision/recall***, ***F1 score***, ***MCC***, ***Accuracy***metrics were calculated. 
 
-For PolyCat and HyLiTE, ***Efficiency*** measures the proportion of total reads aligned to diploid reference that can be partitioned, while this measure for RSEM, Salmon and Kallisto approximates 1 given their different algorithms. 
+In addition, custom measures of ***Efficiency*** and ***Discrepancy*** were used to examine how different methods deal with ambiguous read alignment (discard or statistical inference). For PolyCat and HyLiTE, ***Efficiency*** measures the proportion of total reads aligned to diploid reference that can be partitioned, while this measure for RSEM, Salmon and Kallisto approximates 1 given their different algorithms. 
 
-***Accuracy*** measures the percentage of partitioned homoeolog read counts that are truely orginated from the predicted diploid genome. For PolyCat and HyLiTE, it is straight forward to look at alignments results `BAM` of partitioned reads and check whether their assignment agree with true origin. For RSEM, Salmon and Kallisto, no such "partitioned alignment" of polyploid can be inspected; therefore, we measured how accurate the _diploid_ reads were assigned to its corresponding subgenome based on alignment against the polyploid transcript reference.
-
-***Discrepancy*** is like the percentage error of expected total diploid read counts, as abs(exp-obs)/exp.
-
-Additionally from the perspective of [Precision and recall](https://en.wikipedia.org/wiki/Precision_and_recall), we obtained TP, TN, FP, FN from the diploid datasets for calculation. For example, At precision = A2.At/(A2.At + D5.At), recall = A2.At/(A2.At + A2.Dt); the recall is equivalent to previous ***Accuracy*** calculated for homoeologs. ***F measure*** combines precision and recall for evaluation: F= 2x(precision x recall) / (precision + recall). ***MCC*** provides another balanced measure of binary classification.
 
 #### Scripts
 
 * [detectEffectiveRegion.r](effectiveRegion/detectEffectiveRegion.r): get effective transcript regions that are diagnostic of homoeolog origins, given certain RNA-seq fragment length - 100 bp for SE, 300 bp for PE here. 
 * [2.0.get\_hylite_true.sh](scripts/2.0.get_hylite_true.sh): extract one-to-one mapping correspondence between ADs and diploid reads
-* [2.1.evaluate\_read_assignment.r](scripts/2.evaluate_read_assignment.r) : metrics calculation
-* [2.2.evaluation\_summary.r](scripts/2.evaluation_summary.r) : metrics comparison
-* ####### **TO DO** ##########
-* [2.3](): Statistical modeling and prediction by Meiling Liu; to be added
+* [2.1.evaluate\_read_assignment.r](scripts/2.1.evaluate_read_assignment.r) : metrics calculation
+* [2.2.evaluation\_summary.r](scripts/2.2.evaluation_summary.r): compare metrics and make summary table.
 
 #### Explanation of output files
 
 * `s2.eval.[method].pdf`............ histogram and pairs plot of metrics and etc.
 * `s2.eval.[method].homoeolog.pdf`............ scatter plot of At vs Dt metrics
 * `s2.eval.[method].summary.pdf`............ metric summary table
-* `s2.assign_eval.[method].Rdata"
-* `s2.assign_eval.summary.pdf`............ plots for comparing methods
-* `2.2.evaluation_summary.r.txt`............ comparison analysis printout
+* `s2.assign_eval.[method].Rdata`............ metrics values
+* `s2.evaluation_summary.txt`............ comparison analysis results
 
 `[method]` as "polycat", "hylite", "rsem", "salmon", "kallisto".
 
 ### Step 3. Differential gene expression analysis
 
-Considering the differentially expressed genes between homoeologs resulted from diploid datasets as "Expected" (A2D5), we ask how homoeolog-specific read estimation affect the "Observed" (ADs) lists of DE genes. Two DE analysis algorithms - DESeq2 and EBSeq, in combination with five homoeolog read estimation methods (polycat, hylite, rsem, salmon, kallisto) were tested. The detection of "Expected" DE genes can be seen as a binary decision problem, which were evaluated with Sensitivity (=recall), Specificity, Precision, F statistics, MCC, ROC curves and AUC. 
+In comparison with the "expected" differentially expressed genes between homoeologs (A2 vs D5), we ask how homoeolog read estimation and DE methods tegoether affect the "observed" (ADs: At vs Dt) lists of DE genes. Two DE analysis algorithms - DESeq2 and EBSeq, in conjuction with each of the five homoeolog read estimation methods (polycat, hylite, rsem, salmon, kallisto) were tested. The detection of "Expected" DE genes can be seen as a binary decision problem, which were evaluated with Sensitivity (=recall), Specificity, Precision, F statistics, MCC, ROC curves and AUC. 
 
 #### Scripts
 
@@ -125,56 +118,65 @@ True and estimated homoeolog read count tables from 10 datasets (five mapping pi
 
 #### Scripts
 
-* [5a.WGCNA.r](scripts/5a.WGCNA.r) 
+* [5a.WGCNA.prep.r](scripts/5a.WGCNA..prep.r) 
+* [5a.WGCNA.r](scripts/5a.WGCNA.r) ([5a.slurm](scripts/5a.slurm))
+* [5a.WGCNA.post.r](scripts/5a.WGCNA.post.r)
 * [5b.BNA.r](scripts/5b.BNA.r) 
 
 #### Explanation of output files
 
 **WGCNA**: `[method]` as polycat, hylite, rsem, salmon or kallisto; `[transfomation]` as rld or log2rpkm.
 
-
 * `R-05-dataInput.[method]_[transfomation].RData`............ network input multiExpr with rlog or log2rpkm transformation
 * `s5.multiExpr.clustering.pdf`............ clustering analysis of network input multiExpr.
 * `R-05-chooseSoftThreshold.Rdata`............ network input multiExpr with log2rpkm transformation
 * `s5.wgcna.choosePower_[method]_[transfomation].pdf`............ plot of choose soft threshold
+* `s5.refPresevation_[method]_[transfomation].B[power].pdf`............ preservation test results
+* `s5.Zsummary.pdf`............ summary boxplot of Z preservation results
+
 
 **Binary networks**
 
 * `5.BNA.rout.txt`............ log history of binary network analysis.
-* `s5.bna.AUC.Rdata`............ plot of choose soft threshold
+* `s5.bna.AUC.Rdata`............ AUC results
+* `s5.bna.plotAUC.sample6266.permutation10.pdf`............ plot of AUC results
 
 
 ### Step 6. Assessment of network topology and functional connectivity
- 
 
 #### Scripts
 
 * [6.prepFunctionCategory.r](scripts/6.prepFunctionCategory.r)
-* [6.FUN.r](scripts/6.FUN.r)
-* [6a.NC.r](scripts/6a.NC.r)
-* [6b.FC.r](scripts/6b.FC.r)
+* [6.FUN.r](scripts/6.FUN.r) 
+* [6a.NC.r](scripts/6a.NC.r) ([6a.slurm](scripts/6a.slurm))
+* [6b.FC.r](scripts/6b.FC.r) ([6b.slurm](scripts/6b.slurm))
+* [6.post.r](scripts/6.post.r)
 
 #### Explanation of output files
 
-* `GOnKEGGnGLs.Rdata`............ functional categories of GO, .
-* `s5.bna.AUC.Rdata`............ plot of choose soft threshold
+* `GOnKEGGnGLs.Rdata`............ functional categories of GO, oil related gene families, and flowering time related gene families.
+* -------------------- Node Connectivity --------------------
+* `s6.NC.rdata`............ results of node connectivity correlation (exp vs obs) and A-/D-subnetwork density.
+* `s6.NC_corr.pdf`............ boxplot of node connectivity correlation (exp vs obs) across pipeline, normalization and network Types.
+* `s6.NC_denisty.pdf`............ line plot with error bars of subnetwork density for each combination of pipeline, normalization and network Types.
+* `s6.NC_denisty.txt`............ result table of subnetwork density for each combination of pipeline, normalization and network Types.
+* -------------------- Functional Connectivity --------------------
+* `s6.FC.rdata`............ results of AUROC correlations (exp vs obs) and A-/D-subnetwork AUROCs.
+* `s6.FC_corr.pdf`............ boxplot of functional connectivity correlation (exp vs obs) across pipeline, normalization and network Types.
+* `s6.FC_auroc.pdf`............ boxplot of functional connectivity across pipeline, normalization and network Types.
+* `s6.FC_subAD.pdf`............ ............ line plot with error bars of subnetwork auroc for each combination of pipeline, normalization and network Types.
+* `s6.FC_subAD.txt`............ result table of subnetwork auroc for each combination of pipeline, normalization and network Types.
 
-### Step 7. Case study of allopolyploid network using polycat
- 
+
+
+### Step 7. Examination of the impact of read ambiguity on performance
+
+The metrics derived from read assignment, DE, DC and network analyses were correlayed with gene groups binned by *%eflen*.
 
 #### Scripts
 
+* [7.readAmbiguity.r](scripts/7.readAmbiguity.r)
+
 #### Explanation of output files
 
-
-# bookmark, below NOT cleaned up yet
-
-
-
-
-
-
-
-
-
-* [Eflen_Networks110516.r](Eflen_Networks110516.r)
+* `s7.eval_by_%eflen.pdf`............ Efficiency, Descrepancy, F1 and MCC inspected by *%eflen* bins.
