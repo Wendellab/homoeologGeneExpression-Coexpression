@@ -1,3 +1,4 @@
+options(scipen = 999)
 panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
 {
     usr <- par("usr"); on.exit(par(usr))
@@ -8,7 +9,10 @@ panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
     if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
     text(0.5, 0.5, txt, cex = cex.cor * r)
 }
-
+#computation of the standard error of the mean
+sem=function(x){sd(x)/sqrt(length(x))}
+#95% confidence intervals of the mean
+c(mean(x)-2*sem,mean(x)+2*sem)
 
 #########################
 ######### summary #######
@@ -19,8 +23,6 @@ load("s2.assign_eval.rsem.Rdata")
 load("s2.assign_eval.hylite.Rdata")
 load("s2.assign_eval.salmon.Rdata")
 load("s2.assign_eval.kallisto.Rdata")
-
-
 
 ## check sample order
 polycatSummary$info$sample == hyliteSummary$info$sample
@@ -42,20 +44,112 @@ pairs( size[23:33,], lower.panel=panel.smooth, upper.panel=panel.cor, pch=20,  m
 # ggplot(df, aes(x=sample,y=value, fill=variable))+ geom_bar(stat="identity", position=position_dodge())
 
 ## summary
-sumTbl=list()
-metrics = c( "Efficiency" , "Discrepancy", "Accuracy",    "Precision", "Fmeasure","MCC"  )
 methods = c("polycat","hylite","rsem", "salmon", "kallisto")
-for(i in metrics){
-    if(exists("temp")){rm(temp)}
-    for(m in methods)
-    {
-        x = get(paste0(m,"Summary"))[[i]]["overall",]
-        if(!exists("temp")) {temp=x}else {temp=rbind(temp,x)}
-        rownames(temp)[nrow(temp)] =m
-    }
-    sumTbl[[i]] = temp
+if(exists("sumTbl")){rm(sumTbl)}
+for(m in methods)
+{
+    x = get(paste0(m,"Summary"))
+    # Efficiency
+    e=cbind(t(x$Efficiency[1,]), apply(x$Efficiency,2,sem)); rownames(e)[1]="Efficiency"
+    # Discrepancy
+    d=cbind(t(x$Discrepancy[1,]), apply(x$Discrepancy,2,sem)); rownames(d)[1]="Discrepancy"
+    # other metrics
+    oa=cbind(t(x$binA[1,]), apply(x$binA,2,sem))
+    od=cbind(t(x$binB[1,]), apply(x$binB,2,sem))
+    # combine
+    me= rbind(e,d,oa[1,],od[1,],oa[2,],od[2,], oa[4,],od[4,],oa[3,],oa[5,])
+    rownames(me)[7:14]=c("Precision.At","Precision.Dt","Recall.At","Recall.Dt","F1.At","F1.Dt","Accuracy","MCC")
+    colnames(me)=paste0(m,c(".overall",".se"))
+    if(!exists("sumTbl")) {sumTbl=me}else {sumTbl=cbind(sumTbl,me)}
 }
-print(sumTbl)
+round(sumTbl*100,1)
+write.table(round(sumTbl*100,1),file="s2.evaluation_summary.txt")
+
+#########################
+## Partition by %eflen ##
+#########################
+
+# geneLenM, output from "detectEffectiveRegion.r"
+geneL <- read.table("eflenList.txt",header=TRUE,sep="\t")
+geneL$ratio100 = geneL$theoretical100/geneL$true
+geneL$ratio300 = geneL$theoretical300/geneL$true
+
+methods = c("polycat","hylite","rsem", "salmon", "kallisto")
+if(exists("sumTbl")){rm(sumTbl)}
+for(m in methods)
+{
+    res = get(m)
+    # bin genes by A to 6 classes
+    breaks <- c(0, 0.80, 0.90, 0.95,1)
+    res$c<-.bincode(x=res$percentageEffectM, b=breaks, FALSE)
+    res$c[is.na(res$c)]=5
+    cName<-c("[0-0.8)","[0.8-0.9)","[0.9-0.95)","[0.95-1)","[1]")
+head(res)}
+
+library(ggplot2)
+library(dplyr)
+# collect stats
+load("s2.assign_eval.polycat.Rdata")
+load("s2.assign_eval.rsem.Rdata")
+load("s2.assign_eval.hylite.Rdata")
+load("s2.assign_eval.salmon.Rdata")
+load("s2.assign_eval.kallisto.Rdata")
+polycat$pipeline="polycat"
+hylite$pipeline="hylite"
+rsem$pipeline="rsem"
+salmon$pipeline="salmon"
+kallisto$pipeline="kallisto"
+df=rbind(polycat,hylite,rsem,salmon,kallisto)
+# bin by %eflen
+breaks <- c(0, 0.80, 0.90, 0.95,1)
+df$c<-.bincode(x=df$percentageEffectM, b=breaks, FALSE)
+df$c[is.na(df$c)]=5
+cName<-c("[0-0.8)","[0.8-0.9)","[0.9-0.95)","[0.95-1)","[1]")
+df$b = cName[df$c]
+# clean
+df$discrepancy[df$discrepancy>1]=1
+df$efficiency[df$efficiency>1]=1
+pdf("s2.eval_by_%eflen.pdf")
+# Accuracy
+df.summary <- df %>%
+group_by(pipeline,b ) %>%
+    summarise(
+    sd = sd(accuracy,na.rm=T),
+    mean = mean(accuracy,na.rm=T)
+    )
+ggplot(df.summary, aes(b, mean)) + geom_line(aes(group=pipeline,linetype=pipeline,  color=pipeline),position = position_dodge(0.3)) +  geom_point(aes( color=pipeline),position = position_dodge(0.3)) + geom_errorbar(aes(ymin = mean-sd, ymax = mean+sd, color = pipeline), position = position_dodge(0.3),width = 0.2) + ggtitle("Accuracy")+theme_bw() + theme(panel.border=element_blank(),axis.line.x=element_line()) + xlab("%Eflen")
+# MCC
+df.summary <- df %>%
+group_by(pipeline,b ) %>%
+summarise(
+sd = sd(mcc,na.rm=T),
+mean = mean(mcc,na.rm=T)
+)
+df.summary
+ggplot(df.summary, aes(b, mean)) + geom_line(aes(group=pipeline,linetype=pipeline,  color=pipeline),position = position_dodge(0.3)) +  geom_point(aes( color=pipeline),position = position_dodge(0.3)) + geom_errorbar(aes(ymin = mean-sd, ymax = mean+sd, color = pipeline), position = position_dodge(0.3),width = 0.2) + ggtitle("MCC") + theme_bw() + theme(panel.border=element_blank(),axis.line.x=element_line()) + xlab("%Eflen")
+# Discrepancy
+df.summary <- df %>%
+group_by(pipeline,b ) %>%
+summarise(
+sd = sd(discrepancy,na.rm=T),
+mean = mean(discrepancy,na.rm=T)
+)
+df.summary
+ggplot(df.summary, aes(b, mean)) + geom_line(aes(group=pipeline,linetype=pipeline,  color=pipeline),position = position_dodge(0.3)) +  geom_point(aes( color=pipeline),position = position_dodge(0.3)) + geom_errorbar(aes(ymin = mean-sd, ymax = mean+sd, color = pipeline), position = position_dodge(0.3),width = 0.2) + ggtitle("Discrepancy") + theme_bw() + theme(panel.border=element_blank(),axis.line.x=element_line()) + xlab("%Eflen")
+# Efficency
+df.summary <- df %>%
+group_by(pipeline,b ) %>%
+summarise(
+sd = sd(efficiency,na.rm=T),
+mean = mean(efficiency,na.rm=T)
+)
+df.summary
+ggplot(df.summary, aes(b, mean)) + geom_line(aes(group=pipeline,linetype=pipeline,  color=pipeline),position = position_dodge(0.3)) +  geom_point(aes( color=pipeline),position = position_dodge(0.3)) + geom_errorbar(aes(ymin = mean-sd, ymax = mean+sd, color = pipeline), position = position_dodge(0.3),width = 0.2) + ggtitle("Efficiency") + theme_bw() + theme(panel.border=element_blank(),axis.line.x=element_line()) + xlab("%Eflen")
+dev.off()
+
+
+
+---book--
 
 ## gene-wise metrics comparison, noting that sample order is different in hylite
 message("Compare metrics between methods: ")
