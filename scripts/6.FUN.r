@@ -12,12 +12,13 @@ build_wgcna_net <- function(gene.corr, power=6, subAD=FALSE )
     if(subAD==TRUE)
     {
         ids<- rownames(gene.corr)
-        net<-list(A=gene.corr[grep("a$",ids),grep("a$",ids)], D=gene.corr[grep("d$",ids),grep("d$",ids)])
-        net$A<-adjacency.fromSimilarity(net$A, power=power, type="signed")
-        net$D<-adjacency.fromSimilarity(net$D, power=power, type="signed")
+        R<-list(A=gene.corr[grep("a$",ids),grep("a$",ids)], D=gene.corr[grep("d$",ids),grep("d$",ids)], interAD=gene.corr[grep("a$",ids),grep("d$",ids)])
+        net=list()
+        net$A<-adjacency.fromSimilarity(R$A, power=power, type="signed")
+        net$D<-adjacency.fromSimilarity(R$D, power=power, type="signed")
+        net$interAD= (R$interAD/2+1)^power
     }else{
-        net<-gene.corr
-        net<-adjacency.fromSimilarity(net, power=power, type="signed")
+        net<-adjacency.fromSimilarity(gene.corr, power=power, type="signed")
     }
     return(net)
 }
@@ -46,9 +47,10 @@ build_binary_net <- function(gene.corr, metric = c("rank","Zscore","raw"), cutof
     if(subAD==TRUE)
     {
         ids<- rownames(gene.corr)
-        net<-list(A=gene.corr[grep("a$",ids),grep("a$",ids)], D=gene.corr[grep("d$",ids),grep("d$",ids)])
+        net<-list(A=gene.corr[grep("a$",ids),grep("a$",ids)], D=gene.corr[grep("d$",ids),grep("d$",ids)], interAD=gene.corr[grep("a$",ids),grep("d$",ids)])
         net$A<-ifelse(net$A<threshold,0,1)
         net$D<-ifelse(net$D<threshold,0,1)
+        net$interAD<-ifelse(net$interAD<threshold,0,1)
     }else{
         net<-gene.corr
         net<-ifelse(net<threshold,0,1)
@@ -56,7 +58,7 @@ build_binary_net <- function(gene.corr, metric = c("rank","Zscore","raw"), cutof
     return(net)
 }
 
---book
+
 ## function to run functional connectivity by EGAD
 run_egad<-function(network, annotation)
 {
@@ -101,11 +103,13 @@ run_nv_homoeo<-function(network, annotation, min = 10, max = 500, nfold = 3)
 compare_nvs<-function(obs.fc, exp.fc, title="test", save.rdata=FALSE)
 {
     # Wilcoxon rank-sum test:
-    par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+    par(mfrow=c(3,2),oma = c(0, 0, 2, 0))
     plot_auc_compare(exp.fc$A[,1], exp.fc$D[,1], xlab ="AUC - At",ylab="AUC - Dt", title="Expected",pch=".")
     plot_auc_compare(obs.fc$A[,1], obs.fc$D[,1], xlab ="AUC - At",ylab="AUC - Dt", title="Observed",pch=".")
     plot_auc_compare(exp.fc$A[,1], obs.fc$A[,1], xlab ="AUC - exp",ylab="AUC - obs", title="At",pch=".")
     plot_auc_compare(exp.fc$D[,1], obs.fc$D[,1], xlab ="AUC - exp",ylab="AUC - obs", title="Dt",pch=".")
+    plot_auc_compare(exp.fc$interAD[,1], obs.fc$interAD[,1], xlab ="AUC - exp",ylab="AUC - obs", title="inter At-Dt",pch=".")
+    plot(0,type='n',axes=FALSE,ann=FALSE)
     mtext(title, outer = TRUE, cex = 2)
     if(save.rdata){save(obs.fc,exp.fc,file=paste0(title,".rdata"))}
 }
