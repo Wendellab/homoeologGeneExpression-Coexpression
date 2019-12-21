@@ -1,4 +1,29 @@
-# generare histogram for estimation and quantitative explanatory variables, pairwise correlation matrix
+############### FUNC ###############
+## binary classification evaluation
+binC = function(TP,TN,FP,FN){
+    precision=TP/(TP+FP)
+    recall=TP/(TP+FN)
+    accuracy = (TP+TN)/(TP+TN+FP+FN)
+    F1=2*precision*recall/(precision+recall)
+    MCC = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
+    overall <- c(mean(as.numeric(as.matrix(precision)), na.rm=TRUE), mean(as.numeric(as.matrix(recall)), na.rm=TRUE),  mean(as.numeric(as.matrix(accuracy)), na.rm=TRUE), mean(as.numeric(as.matrix(F1)), na.rm=TRUE),  mean(as.numeric(as.matrix(MCC)), na.rm=TRUE) )
+    bySamples<-cbind( apply(precision,2,function(x)mean(x,na.rm=TRUE)), apply(recall,2,function(x)mean(x,na.rm=TRUE)), apply(accuracy,2,function(x)mean(x,na.rm=TRUE)), apply(F1,2,function(x)mean(x,na.rm=TRUE)), apply(MCC,2,function(x)mean(x,na.rm=TRUE)))
+    res <- as.data.frame(rbind(overall, bySamples))
+    names(res) <-c( "Precision","Recall","Accuracy","F1","MCC")
+    return(list(summary=res, precision=precision, recall=recall, accuracy=accuracy, F1=F1, MCC=MCC))
+}
+##
+panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
+{
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    r <- abs(cor(x, y, use="complete.obs"))
+    txt <- format(c(r, 0.123456789), digits=digits)[1]
+    txt <- paste(prefix, txt, sep="")
+    if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+    text(0.5, 0.5, txt, cex = cex.cor * r)
+}
+## generare histogram for estimation and quantitative explanatory variables, pairwise correlation matrix
 plotRes <- function(res, file="", sampleN = 20000)
 {
     pdf(file)
@@ -12,7 +37,7 @@ plotRes <- function(res, file="", sampleN = 20000)
     finite <- which(is.finite(res$discrepancy)&is.finite(res$efficiency))
     ss<-sample(finite,sampleN,replace=FALSE)
     par(mfrow=c(1,1))
-    pairs( res[ss,c("efficiency", "discrepancy", "accuracy", "precision", "geneLenM", "percentageEffectM", "expression", "expression.log2")], lower.panel=panel.smooth, upper.panel=panel.cor, pch='.', col = rgb(0, 0, 0, 0.05) )
+    pairs( res[ss,c("efficiency", "discrepancy", "accuracy", "mcc", "geneLenM", "percentageEffectM", "expression", "expression.log2")], lower.panel=panel.smooth, upper.panel=panel.cor, pch='.', col = rgb(0, 0, 0, 0.05) )
     # exp.log2
     ss<-sample(1:nrow(networks$ADs)*33,sampleN*2,replace=FALSE)
     obs = log2(as.numeric(as.matrix(networks$ADs))[ss]+1)
@@ -57,43 +82,32 @@ plotRes.homoeo<-function(resH, file="", sampleN = 20000)
     lines(stats::lowess(resH$discrepancyD[only], resH$discrepancyA[only]),  col = "red")
     abline(lm(resH$discrepancyD[only]~resH$discrepancyA[only]),  col = "blue")
     
-    finite <- which(is.finite(resH$accuracyA)&is.finite(resH$accuracyD))
-    only<-sample(finite, sampleN, replace=FALSE)
-    r<-cor(resH$accuracyA[only],resH$accuracyD[only])
-    plot(resH$accuracyA[only],resH$accuracyD[only],pch=".",xlim=c(0,1), ylim=c(0,1), col = rgb(0, 0, 0, 0.05), main=paste0("Accuracy (or Recall): At vs Dt, r=",round(r,3)))
-    lines(stats::lowess(resH$accuracyD[only], resH$accuracyA[only]),  col = "red")
-    abline(lm(resH$accuracyD[only]~resH$accuracyA[only]),  col = "blue")
-    
     finite <- which(is.finite(resH$precisionA)&is.finite(resH$precisionD))
     only<-sample(finite, sampleN, replace=FALSE)
     r<-cor(resH$precisionA[only],resH$precisionD[only])
     plot(resH$precisionA[only],resH$precisionD[only],pch=".",xlim=c(0,1), ylim=c(0,1), col = rgb(0, 0, 0, 0.05), main=paste0("Precision: At vs Dt, r=",round(r,3)))
     lines(stats::lowess(resH$precisionD[only], resH$precisionA[only]),  col = "red")
     abline(lm(resH$precisionD[only]~resH$precisionA[only]),  col = "blue")
-
-    finite <- which(is.finite(resH$FstatA)&is.finite(resH$FstatD))
+    
+    finite <- which(is.finite(resH$recallA)&is.finite(resH$recallD))
     only<-sample(finite, sampleN, replace=FALSE)
-    r<-cor(resH$FstatA[only],resH$FstatD[only])
-    plot(resH$FstatA[only],resH$FstatD[only],pch=".",xlim=c(0,1), ylim=c(0,1), col = rgb(0, 0, 0, 0.05), main=paste0("Fstat: At vs Dt, r=",round(r,3)))
-    lines(stats::lowess(resH$FstatD[only], resH$FstatA[only]),  col = "red")
-    abline(lm(resH$FstatD[only]~resH$FstatA[only]),  col = "blue")
+    r<-cor(resH$recallA[only],resH$recallD[only])
+    plot(resH$recallA[only],resH$recallD[only],pch=".",xlim=c(0,1), ylim=c(0,1), col = rgb(0, 0, 0, 0.05), main=paste0("Recall: At vs Dt, r=",round(r,3)))
+    lines(stats::lowess(resH$recallD[only], resH$recallA[only]),  col = "red")
+    abline(lm(resH$recallD[only]~resH$recallA[only]),  col = "blue")
+
+    finite <- which(is.finite(resH$F1A)&is.finite(resH$F1D))
+    only<-sample(finite, sampleN, replace=FALSE)
+    r<-cor(resH$F1A[only],resH$F1D[only])
+    plot(resH$F1A[only],resH$F1D[only],pch=".",xlim=c(0,1), ylim=c(0,1), col = rgb(0, 0, 0, 0.05), main=paste0("F1 score: At vs Dt, r=",round(r,3)))
+    lines(stats::lowess(resH$F1D[only], resH$F1A[only]),  col = "red")
+    abline(lm(resH$F1D[only]~resH$F1A[only]),  col = "blue")
     
 
-dev.off()
-}
+dev.off() }
 
 
 
-panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
-{
-    usr <- par("usr"); on.exit(par(usr))
-    par(usr = c(0, 1, 0, 1))
-    r <- abs(cor(x, y, use="complete.obs"))
-    txt <- format(c(r, 0.123456789), digits=digits)[1]
-    txt <- paste(prefix, txt, sep="")
-    if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
-    text(0.5, 0.5, txt, cex = cex.cor * r)
-}
 
 
 
@@ -140,37 +154,6 @@ resEffi <- as.data.frame(rbind(overall, bySamples))
 names(resEffi) <-c("total","At","Dt")
 resEffi
 
-
-## calculate assignment accuracy - percentage of correctly partitioned reads among assigned reads
-# mis-assigned reads cannot be directly counted from ADs reads, so using mis-assigned from independent A2 and D5 mapping to approximete.
-# This approximation can be validated by comparing assigned reads between observation (ADs.At + ADs.Dt) and expectation (A2.At + A2.Dt + D5.At + D5.Dt), as:
-summary(as.numeric(as.matrix(( (ADs.At + ADs.Dt) - (A2.At + A2.Dt + D5.At + D5.Dt))/(ADs.At + ADs.Dt) ) ) )
-unique(as.numeric(as.matrix((ADs.At + ADs.Dt) - (A2.At + A2.Dt + D5.At + D5.Dt) ) ) )
-unique(as.numeric(as.matrix((ADs.At) - (A2.At + D5.At) ) ) )
-# given the equal amounts of assigned reads between ADs and A2+D5, we accecpt that polycat partitioning worked in a consistent manner, that mis-assigned reads during A2+D5 will stay mis-assigned in ADs
-true <- D5.Dt + A2.At
-trueA <- A2.At
-trueD <- D5.Dt
-
-diploid <- A2.At + A2.Dt + D5.Dt + D5.At
-diploidA <- A2.At + A2.Dt
-diploidD <- D5.Dt + D5.At
-
-accuracy <- true/diploid
-accuracyA <- trueA/diploidA
-accuracyD <- trueD/diploidD
-
-quantile(as.numeric(as.matrix(accuracy)),na.rm=TRUE) #NaN from 0/0, no way to learn
-quantile(as.numeric(as.matrix(accuracyA)),na.rm=TRUE) #NaN from 0/0, no way to learn
-quantile(as.numeric(as.matrix(accuracyD)),na.rm=TRUE) #NaN from 0/0, no way to learn
-
-# summary table
-overall <- c(sum(true)/sum(diploid), sum(trueA)/sum(diploidA), sum(trueD)/sum(diploidD))
-bySamples<-cbind(apply(true,2,sum)/apply(diploid,2,sum),apply(trueA,2,sum)/apply(diploidA,2,sum),apply(trueD,2,sum)/apply(diploidD,2,sum))
-resAccu <- as.data.frame(rbind(overall, bySamples))
-names(resAccu) <-c("total","At","Dt")
-resAccu
-
 ## calculate assignment discrepancy - percentage of absolute diffence between observed and expected values  among assigned reads
 # discrepancy is an estimate very similar to inaccuracy, but reflect the observed differences in read counts, while inaccuracy reflects the inherent assignment actions. Inaccurate read assignments both for At and Dt can sometimes cancel out each other and do not lead to discrepancy between expected and observed count numbers.
 different <- abs(ADs.At-A2.Total)+abs(ADs.Dt-D5.Total)
@@ -199,60 +182,16 @@ resDisc <- as.data.frame(rbind(overall, bySamples))
 names(resDisc) <-c("total","At","Dt")
 resDisc
 
-## Additionally from the perspective of Precision and recall, we obtained TP, TN, FP, FN from the diploid datasets for calculation. The recall is equivalent to previous Accuracy calculated for homoeologs.
-recallA <- A2.At/(A2.At + A2.Dt)
-recallD <- D5.Dt/(D5.Dt + D5.At)
-recall<- accuracy
-# precision
-precisionA <- A2.At/(A2.At + D5.At)
-precisionD <- D5.Dt/(D5.Dt + A2.Dt)
-# or
-positive <- A2.At + D5.At + D5.Dt + A2.Dt  #same as diploid
-positiveA <- A2.At + D5.At
-positiveD <- D5.Dt + A2.Dt
-precision <- true/positive
-precisionA <- trueA/positiveA
-precisionD <- trueD/positiveD
-# summary table
-overall <- c(sum(true)/sum(positive), sum(trueA)/sum(positiveA), sum(trueD)/sum(positiveD))
-bySamples<-cbind(apply(true,2,sum)/apply(positive,2,sum),apply(trueA,2,sum)/apply(positiveA,2,sum),apply(trueD,2,sum)/apply(positiveD,2,sum))
-resPrec <- as.data.frame(rbind(overall, bySamples))
-names(resPrec) <-c("total","At","Dt")
-resPrec
-# same values for paired reads between recall and precision, all as Accuracy
-resPrec$total - resAccu$total
-# F= 2x(precision x recall)/(precision + recall)
-FstatA <- 2*(recallA*precisionA)/(recallA+precisionA)
-FstatD <- 2*(recallD*precisionD)/(recallD+precisionD)
-Fstat <- 2*(recall*precision)/(recall+precision)  # same as recall or precision or accuracy, not really meaningful
 
-# summary table
-overall <- c(mean(as.numeric(as.matrix(FstatA)), na.rm=TRUE), mean(as.numeric(as.matrix(FstatD)), na.rm=TRUE))
-bySamples<-cbind( apply(FstatA,2,function(x)mean(x, na.rm=TRUE)),apply(FstatD,2,function(x)mean(x, na.rm=TRUE)))
-resFstat <- as.data.frame(rbind(overall, bySamples))
-names(resFstat) <-c( "At","Dt")
-resFstat
+## binary classification evaluation
+# A as TRUE
+resBinA=binC(TP = A2.At, TN = D5.Dt, FP = D5.At ,FN = A2.Dt)
+# D as TRUE
+resBinD=binC(TP = D5.Dt, TN = A2.At, FP = A2.Dt ,FN = D5.At)
+# summary
+resBinA$summary
+resBinD$summary
 
-## MCC
-TP = A2.At
-TN = D5.Dt
-FP = D5.At
-FN = A2.Dt
-MCC = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
-TN = D5.Dt + D5.N
-FN =  A2.Dt + A2.N
-MCCAn = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
-TP = D5.Dt
-TN = A2.At + A2.N
-FP = A2.Dt
-FN = D5.At + D5.N
-MCCDn = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
-
-overall <- c(mean(as.numeric(as.matrix(MCC)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCAn)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCDn)), na.rm=TRUE) )
-bySamples<-cbind( apply(MCC,2,function(x)mean(x, na.rm=TRUE)),apply(MCCAn,2,function(x)mean(x, na.rm=TRUE)),apply(MCCDn,2,function(x)mean(x, na.rm=TRUE)))
-resMCC <- as.data.frame(rbind(overall, bySamples))
-names(resMCC) <-c( "total", "At","Dt")
-resMCC
 
 ###############
 
@@ -262,17 +201,23 @@ info$type <- c(rep("PE",22), rep("SE",11))
 info$ADsLibSize <- colSums(ADs.Total)
 
 # geneLenM, output from "detectEffectiveRegion.r"
-geneL <- read.table("eflenList.txt",header=TRUE,sep="\t")
-len<- geneL$true
-names(len)<-geneL$gene
-# length for 37223 genes
-len<-len[rownames(A2.Total)]
+rl50 <- read.table("output/eflenList.rl50.txt",header=TRUE,sep="\t")
+rl100 <- read.table("output/eflenList.rl100.txt",header=TRUE,sep="\t")
+rl200 <- read.table("output/eflenList.rl200.txt",header=TRUE,sep="\t")
+rl300 <- read.table("output/eflenList.rl300.txt",header=TRUE,sep="\t")
+unique(rl50[,1:2]==rl100[,1:2]) #TRUE    TRUE
+unique(rl50[,1:2]==rl200[,1:2])
+unique(rl50[,1:2]==rl300[,1:2])
+geneL <-cbind(rl50,rl100[,3:4],rl200[,3:4],rl300[,3:4])
+names(geneL) <-c("id","len","eflen50","ratio50","eflen100","ratio100","eflen200","ratio200","eflen300","ratio300")
+write.table(geneL, file="eflenList.txt", row.names=FALSE,sep="\t")
 
 # percentageEffectM
-ratio100<- geneL$theoretical100 / geneL$true
-names(ratio100)<-geneL$gene
-ratio300<- geneL$theoretical300 / geneL$true
-names(ratio300)<-geneL$gene
+geneL <- read.table("eflenList.txt",header=TRUE,sep="\t")
+ratio100<- geneL$ratio100
+names(ratio100)<-geneL$id
+ratio300<- geneL$ratio300
+names(ratio300)<-geneL$id
 # effective_length/true_length ratio for 37223 genes
 ratio100<-ratio100[rownames(A2.Total)]
 ratio300<-ratio300[rownames(A2.Total)]
@@ -297,15 +242,15 @@ tissue <- rep(coldata$tissue, each=37223)
 rep <- rep(as.numeric(gsub("R","",coldata$rep)), each=37223)
 # length corresponding to 37223 genes X 11 samples matrix
 geneLenM <- rep(len, 33)
-percentageEffectM <- c( rep(ratio100,11),rep(ratio300,22) )
+percentageEffectM <- c( rep(ratio300,22),rep(ratio100,11) )
 
 ## make working dataset
-res <- data.frame(gene, sample, tissue, rep, geneLenM, percentageEffectM, expression=as.numeric(as.matrix(expression)), expression.log2=as.numeric(as.matrix(expression.log2)), efficiency=as.numeric(as.matrix(efficiency)), discrepancy=as.numeric(as.matrix(discrepancy)), accuracy=as.numeric(as.matrix(accuracy)), precision=as.numeric(as.matrix(precision)))
+res <- data.frame(gene, sample, tissue, rep, geneLenM, percentageEffectM, expression=as.numeric(as.matrix(expression)), expression.log2=as.numeric(as.matrix(expression.log2)), efficiency=as.numeric(as.matrix(efficiency)), discrepancy=as.numeric(as.matrix(discrepancy)), accuracy=as.numeric(as.matrix(resBinA$accuracy)), mcc=as.numeric(as.matrix(resBinA$MCC)))
 # discrepancy very tricky:
 # res$discrepancy0 <- res$discrepancy
 # res$discrepancy0[discrepancy>30] <- NA
-resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)), as.numeric(as.matrix(accuracyA)), as.numeric(as.matrix(accuracyD)), as.numeric(as.matrix(precisionA)), as.numeric(as.matrix(precisionD)), as.numeric(as.matrix(FstatA)), as.numeric(as.matrix(FstatD)),as.numeric(as.matrix(MCC)), as.numeric(as.matrix(MCCAn)), as.numeric(as.matrix(MCCDn)) )
-names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","accuracyA", "accuracyD", "precisionA", "precisionD", "FstatA", "FstatD","MCC","MCCAn","MCCDn")
+resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)),  as.numeric(as.matrix(resBinA$precision)), as.numeric(as.matrix(resBinD$precision)), as.numeric(as.matrix(resBinA$recall)), as.numeric(as.matrix(resBinD$recall)), as.numeric(as.matrix(resBinA$F1)), as.numeric(as.matrix(resBinD$F1)) )
+names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","precisionA", "precisionD", "recallA", "recallD", "F1A", "F1D")
 
 ## plot and save results
 polycat<-res
@@ -320,17 +265,13 @@ textplot(round(resEffi*100,2))
 mtext("Efficiency (%)")
 textplot(round(resDisc*100,2))
 mtext("Discrepancy (%)")
-textplot(round(resAccu*100,2))
-mtext("Accuracy (%)")
-textplot(round(resPrec*100,2))
-mtext("Precision (%)")
-textplot(round(resFstat*100,2))
-mtext("F measure (%)")
-textplot(round(resMCC*100,2))
-mtext("MCC (%)")
+textplot(round(resBinA$summary*100,2))
+mtext("At Metrics (%)")
+textplot(round(resBinD$summary*100,2))
+mtext("Dt Metrics (%)")
 dev.off()
 
-polycatSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, Accuracy=resAccu, Precision=resPrec, Fmeasure=resFstat, MCC= resMCC)
+polycatSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, binA=resBinA$summary, binB=resBinD$summary)
 
 save(polycat, polycatH, polycatSummary, file="s2.assign_eval.polycat.Rdata")
 # save(efficency, efficencyA, efficencyD, accuracy, accuracyA, accuracyD, discrepancy, discrepancyA, discrepancyD, info, geneL, ratio100, ratio300, file="s2.polycat.estimation.rdata")
@@ -377,37 +318,6 @@ resEffi <- as.data.frame(rbind(overall, bySamples))
 names(resEffi) <-c("total","At","Dt")
 resEffi
 
-
-## calculate assignment accuracy - percentage of correctly partitioned reads among assigned reads
-# mis-assigned reads cannot be directly counted from ADs reads, so using mis-assigned from independent A2 and D5 mapping to approximete.
-# This approximation can be validated by comparing assigned reads between observation (ADs.At + ADs.Dt) and expectation (A2.At + A2.Dt + D5.At + D5.Dt), as:
-summary(as.numeric(as.matrix(( (ADs.At + ADs.Dt) - (A2.At + A2.Dt + D5.At + D5.Dt))/(ADs.At + ADs.Dt) ) ) )
-summary(as.numeric(as.matrix((ADs.At + ADs.Dt) - (A2.At + A2.Dt + D5.At + D5.Dt) ) ) )
-summary(as.numeric(as.matrix((ADs.At) - (A2.At + D5.At) ) ) )
-# given the equal amounts of assigned reads between ADs and A2+D5, we accecpt that salmon partitioning worked in a consistent manner, that mis-assigned reads during A2+D5 will stay mis-assigned in ADs
-true <- D5.Dt + A2.At
-trueA <- A2.At
-trueD <- D5.Dt
-
-diploid <- A2.At + A2.Dt + D5.Dt + D5.At
-diploidA <- A2.At + A2.Dt
-diploidD <- D5.Dt + D5.At
-
-accuracy <- true/diploid
-accuracyA <- trueA/diploidA
-accuracyD <- trueD/diploidD
-
-quantile(as.numeric(as.matrix(accuracy)),na.rm=TRUE) #NaN from 0/0, no way to learn
-quantile(as.numeric(as.matrix(accuracyA)),na.rm=TRUE) #NaN from 0/0, no way to learn
-quantile(as.numeric(as.matrix(accuracyD)),na.rm=TRUE) #NaN from 0/0, no way to learn
-
-# summary table
-overall <- c(sum(true)/sum(diploid), sum(trueA)/sum(diploidA), sum(trueD)/sum(diploidD))
-bySamples<-cbind(apply(true,2,sum)/apply(diploid,2,sum),apply(trueA,2,sum)/apply(diploidA,2,sum),apply(trueD,2,sum)/apply(diploidD,2,sum))
-resAccu <- as.data.frame(rbind(overall, bySamples))
-names(resAccu) <-c("total","At","Dt")
-resAccu
-
 ## calculate assignment discrepancy - percentage of absolute diffence between observed and expected values  among assigned reads
 # discrepancy is an estimate very similar to inaccuracy, but reflect the observed differences in read counts, while inaccuracy reflects the inherent assignment actions. Inaccurate read assignments both for At and Dt can sometimes cancel out each other and do not lead to discrepancy between expected and observed count numbers.
 different <- abs(ADs.At-A2.Total)+abs(ADs.Dt-D5.Total)
@@ -436,57 +346,15 @@ resDisc <- as.data.frame(rbind(overall, bySamples))
 names(resDisc) <-c("total","At","Dt")
 resDisc
 
-## Additionally from the perspective of Precision and recall, we obtained TP, TN, FP, FN from the diploid datasets for calculation. The recall is equivalent to previous Accuracy calculated for homoeologs.
-recallA <- A2.At/(A2.At + A2.Dt)
-recallD <- D5.Dt/(D5.Dt + D5.At)
-recall<- accuracy
-# precision
-precisionA <- A2.At/(A2.At + D5.At)
-precisionD <- D5.Dt/(D5.Dt + A2.Dt)
-# or
-positive <- A2.At + D5.At + D5.Dt + A2.Dt  #same as diploid
-positiveA <- A2.At + D5.At
-positiveD <- D5.Dt + A2.Dt
-precision <- true/positive
-precisionA <- trueA/positiveA
-precisionD <- trueD/positiveD
-# summary table
-overall <- c(sum(true)/sum(positive), sum(trueA)/sum(positiveA), sum(trueD)/sum(positiveD))
-bySamples<-cbind(apply(true,2,sum)/apply(positive,2,sum),apply(trueA,2,sum)/apply(positiveA,2,sum),apply(trueD,2,sum)/apply(positiveD,2,sum))
-resPrec <- as.data.frame(rbind(overall, bySamples))
-names(resPrec) <-c("total","At","Dt")
-resPrec
-# same values for paired reads between recall and precision, all as Accuracy
-resPrec$total - resAccu$total
-# F= 2x(precision x recall)/(precision + recall)
-FstatA <- 2*(recallA*precisionA)/(recallA+precisionA)
-FstatD <- 2*(recallD*precisionD)/(recallD+precisionD)
-Fstat <- 2*(recall*precision)/(recall+precision)  # same as recall or precision or accuracy, not really meaningful
 
-# summary table
-overall <- c(mean(as.numeric(as.matrix(FstatA)), na.rm=TRUE), mean(as.numeric(as.matrix(FstatD)), na.rm=TRUE))
-bySamples<-cbind( apply(FstatA,2,function(x)mean(x, na.rm=TRUE)),apply(FstatD,2,function(x)mean(x, na.rm=TRUE)))
-resFstat <- as.data.frame(rbind(overall, bySamples))
-names(resFstat) <-c( "At","Dt")
-resFstat
-
-## MCC
-TP = A2.At
-TN = D5.Dt
-FP = D5.At
-FN = A2.Dt
-MCC = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
-MCCAn = MCC
-MCCDn = MCC
-
-overall <- c(mean(as.numeric(as.matrix(MCC)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCAn)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCDn)), na.rm=TRUE) )
-bySamples<-cbind( apply(MCC,2,function(x)mean(x, na.rm=TRUE)),apply(MCCAn,2,function(x)mean(x, na.rm=TRUE)),apply(MCCDn,2,function(x)mean(x, na.rm=TRUE)))
-resMCC <- as.data.frame(rbind(overall, bySamples))
-names(resMCC) <-c( "total", "At","Dt")
-resMCC
-
-
-###############
+## binary classification evaluation
+# A as TRUE
+resBinA=binC(TP = A2.At, TN = D5.Dt, FP = D5.At ,FN = A2.Dt)
+# D as TRUE
+resBinD=binC(TP = D5.Dt, TN = A2.At, FP = A2.Dt ,FN = D5.At)
+# summary
+resBinA$summary
+resBinD$summary
 
 ## prepare explainatory variables for analysis
 info<-coldata
@@ -529,15 +397,15 @@ tissue <- rep(coldata$tissue, each=37223)
 rep <- rep(as.numeric(gsub("R","",coldata$rep)), each=37223)
 # length corresponding to 37223 genes X 11 samples matrix
 geneLenM <- rep(len, 33)
-percentageEffectM <- c( rep(ratio100,11),rep(ratio300,22) )
+percentageEffectM <- c( rep(ratio300,22),rep(ratio100,11) )
 
 ## make working dataset
-res <- data.frame(gene, sample, tissue, rep, geneLenM, percentageEffectM, expression=as.numeric(as.matrix(expression)), expression.log2=as.numeric(as.matrix(expression.log2)), efficiency=as.numeric(as.matrix(efficiency)), discrepancy=as.numeric(as.matrix(discrepancy)), accuracy=as.numeric(as.matrix(accuracy)), precision=as.numeric(as.matrix(precision)))
+res <- data.frame(gene, sample, tissue, rep, geneLenM, percentageEffectM, expression=as.numeric(as.matrix(expression)), expression.log2=as.numeric(as.matrix(expression.log2)), efficiency=as.numeric(as.matrix(efficiency)), discrepancy=as.numeric(as.matrix(discrepancy)), accuracy=as.numeric(as.matrix(resBinA$accuracy)), mcc=as.numeric(as.matrix(resBinA$MCC)))
 # discrepancy very tricky:
 # res$discrepancy0 <- res$discrepancy
 # res$discrepancy0[discrepancy>30] <- NA
-resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)), as.numeric(as.matrix(accuracyA)), as.numeric(as.matrix(accuracyD)), as.numeric(as.matrix(precisionA)), as.numeric(as.matrix(precisionD)), as.numeric(as.matrix(FstatA)), as.numeric(as.matrix(FstatD)),as.numeric(as.matrix(MCC)))
-names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","accuracyA", "accuracyD", "precisionA", "precisionD", "FstatA", "FstatD","MCC")
+resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)),  as.numeric(as.matrix(resBinA$precision)), as.numeric(as.matrix(resBinD$precision)), as.numeric(as.matrix(resBinA$recall)), as.numeric(as.matrix(resBinD$recall)), as.numeric(as.matrix(resBinA$F1)), as.numeric(as.matrix(resBinD$F1)) )
+names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","precisionA", "precisionD", "recallA", "recallD", "F1A", "F1D")
 
 ## plot and save results
 salmon<-res
@@ -552,20 +420,16 @@ textplot(round(resEffi*100,2))
 mtext("Efficiency (%)")
 textplot(round(resDisc*100,2))
 mtext("Discrepancy (%)")
-textplot(round(resAccu*100,2))
-mtext("Accuracy (%)")
-textplot(round(resPrec*100,2))
-mtext("Precision (%)")
-textplot(round(resFstat*100,2))
-mtext("F measure (%)")
-textplot(round(resMCC*100,2))
-mtext("MCC (%)")
-
+textplot(round(resBinA$summary*100,2))
+mtext("At Metrics (%)")
+textplot(round(resBinD$summary*100,2))
+mtext("Dt Metrics (%)")
 dev.off()
 
-salmonSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, Accuracy=resAccu, Precision=resPrec, Fmeasure=resFstat, MCC=resMCC)
-
+salmonSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, binA=resBinA$summary, binB=resBinD$summary)
 save(salmon, salmonH, salmonSummary, file="s2.assign_eval.salmon.Rdata")
+
+
 
 ################
 #### kallisto ####
@@ -608,37 +472,6 @@ resEffi <- as.data.frame(rbind(overall, bySamples))
 names(resEffi) <-c("total","At","Dt")
 resEffi
 
-
-## calculate assignment accuracy - percentage of correctly partitioned reads among assigned reads
-# mis-assigned reads cannot be directly counted from ADs reads, so using mis-assigned from independent A2 and D5 mapping to approximete.
-# This approximation can be validated by comparing assigned reads between observation (ADs.At + ADs.Dt) and expectation (A2.At + A2.Dt + D5.At + D5.Dt), as:
-summary(as.numeric(as.matrix(( (ADs.At + ADs.Dt) - (A2.At + A2.Dt + D5.At + D5.Dt))/(ADs.At + ADs.Dt) ) ) )
-summary(as.numeric(as.matrix((ADs.At + ADs.Dt) - (A2.At + A2.Dt + D5.At + D5.Dt) ) ) )
-summary(as.numeric(as.matrix((ADs.At) - (A2.At + D5.At) ) ) )
-# given the equal amounts of assigned reads between ADs and A2+D5, we accecpt that kallisto partitioning worked in a consistent manner, that mis-assigned reads during A2+D5 will stay mis-assigned in ADs
-true <- D5.Dt + A2.At
-trueA <- A2.At
-trueD <- D5.Dt
-
-diploid <- A2.At + A2.Dt + D5.Dt + D5.At
-diploidA <- A2.At + A2.Dt
-diploidD <- D5.Dt + D5.At
-
-accuracy <- true/diploid
-accuracyA <- trueA/diploidA
-accuracyD <- trueD/diploidD
-
-quantile(as.numeric(as.matrix(accuracy)),na.rm=TRUE) #NaN from 0/0, no way to learn
-quantile(as.numeric(as.matrix(accuracyA)),na.rm=TRUE) #NaN from 0/0, no way to learn
-quantile(as.numeric(as.matrix(accuracyD)),na.rm=TRUE) #NaN from 0/0, no way to learn
-
-# summary table
-overall <- c(sum(true)/sum(diploid), sum(trueA)/sum(diploidA), sum(trueD)/sum(diploidD))
-bySamples<-cbind(apply(true,2,sum)/apply(diploid,2,sum),apply(trueA,2,sum)/apply(diploidA,2,sum),apply(trueD,2,sum)/apply(diploidD,2,sum))
-resAccu <- as.data.frame(rbind(overall, bySamples))
-names(resAccu) <-c("total","At","Dt")
-resAccu
-
 ## calculate assignment discrepancy - percentage of absolute diffence between observed and expected values  among assigned reads
 # discrepancy is an estimate very similar to inaccuracy, but reflect the observed differences in read counts, while inaccuracy reflects the inherent assignment actions. Inaccurate read assignments both for At and Dt can sometimes cancel out each other and do not lead to discrepancy between expected and observed count numbers.
 different <- abs(ADs.At-A2.Total)+abs(ADs.Dt-D5.Total)
@@ -667,55 +500,14 @@ resDisc <- as.data.frame(rbind(overall, bySamples))
 names(resDisc) <-c("total","At","Dt")
 resDisc
 
-## Additionally from the perspective of Precision and recall, we obtained TP, TN, FP, FN from the diploid datasets for calculation. The recall is equivalent to previous Accuracy calculated for homoeologs.
-recallA <- A2.At/(A2.At + A2.Dt)
-recallD <- D5.Dt/(D5.Dt + D5.At)
-recall<- accuracy
-# precision
-precisionA <- A2.At/(A2.At + D5.At)
-precisionD <- D5.Dt/(D5.Dt + A2.Dt)
-# or
-positive <- A2.At + D5.At + D5.Dt + A2.Dt  #same as diploid
-positiveA <- A2.At + D5.At
-positiveD <- D5.Dt + A2.Dt
-precision <- true/positive
-precisionA <- trueA/positiveA
-precisionD <- trueD/positiveD
-# summary table
-overall <- c(sum(true)/sum(positive), sum(trueA)/sum(positiveA), sum(trueD)/sum(positiveD))
-bySamples<-cbind(apply(true,2,sum)/apply(positive,2,sum),apply(trueA,2,sum)/apply(positiveA,2,sum),apply(trueD,2,sum)/apply(positiveD,2,sum))
-resPrec <- as.data.frame(rbind(overall, bySamples))
-names(resPrec) <-c("total","At","Dt")
-resPrec
-# same values for paired reads between recall and precision, all as Accuracy
-resPrec$total - resAccu$total
-# F= 2x(precision x recall)/(precision + recall)
-FstatA <- 2*(recallA*precisionA)/(recallA+precisionA)
-FstatD <- 2*(recallD*precisionD)/(recallD+precisionD)
-Fstat <- 2*(recall*precision)/(recall+precision)  # same as recall or precision or accuracy, not really meaningful
-
-# summary table
-overall <- c(mean(as.numeric(as.matrix(FstatA)), na.rm=TRUE), mean(as.numeric(as.matrix(FstatD)), na.rm=TRUE))
-bySamples<-cbind( apply(FstatA,2,function(x)mean(x, na.rm=TRUE)),apply(FstatD,2,function(x)mean(x, na.rm=TRUE)))
-resFstat <- as.data.frame(rbind(overall, bySamples))
-names(resFstat) <-c( "At","Dt")
-resFstat
-## MCC
-TP = A2.At
-TN = D5.Dt
-FP = D5.At
-FN = A2.Dt
-MCC = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
-MCCAn = MCC
-MCCDn = MCC
-
-overall <- c(mean(as.numeric(as.matrix(MCC)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCAn)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCDn)), na.rm=TRUE) )
-bySamples<-cbind( apply(MCC,2,function(x)mean(x, na.rm=TRUE)),apply(MCCAn,2,function(x)mean(x, na.rm=TRUE)),apply(MCCDn,2,function(x)mean(x, na.rm=TRUE)))
-resMCC <- as.data.frame(rbind(overall, bySamples))
-names(resMCC) <-c( "total", "At","Dt")
-resMCC
-
-
+## binary classification evaluation
+# A as TRUE
+resBinA=binC(TP = A2.At, TN = D5.Dt, FP = D5.At ,FN = A2.Dt)
+# D as TRUE
+resBinD=binC(TP = D5.Dt, TN = A2.At, FP = A2.Dt ,FN = D5.At)
+# summary
+resBinA$summary
+resBinD$summary
 ###############
 
 ## prepare explainatory variables for analysis
@@ -759,15 +551,15 @@ tissue <- rep(coldata$tissue, each=37223)
 rep <- rep(as.numeric(gsub("R","",coldata$rep)), each=37223)
 # length corresponding to 37223 genes X 11 samples matrix
 geneLenM <- rep(len, 33)
-percentageEffectM <- c( rep(ratio100,11),rep(ratio300,22) )
+percentageEffectM <- c( rep(ratio300,22),rep(ratio100,11) )
 
 ## make working dataset
-res <- data.frame(gene, sample, tissue, rep, geneLenM, percentageEffectM, expression=as.numeric(as.matrix(expression)), expression.log2=as.numeric(as.matrix(expression.log2)), efficiency=as.numeric(as.matrix(efficiency)), discrepancy=as.numeric(as.matrix(discrepancy)), accuracy=as.numeric(as.matrix(accuracy)), precision=as.numeric(as.matrix(precision)))
+res <- data.frame(gene, sample, tissue, rep, geneLenM, percentageEffectM, expression=as.numeric(as.matrix(expression)), expression.log2=as.numeric(as.matrix(expression.log2)), efficiency=as.numeric(as.matrix(efficiency)), discrepancy=as.numeric(as.matrix(discrepancy)), accuracy=as.numeric(as.matrix(resBinA$accuracy)), mcc=as.numeric(as.matrix(resBinA$MCC)))
 # discrepancy very tricky:
 # res$discrepancy0 <- res$discrepancy
 # res$discrepancy0[discrepancy>30] <- NA
-resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)), as.numeric(as.matrix(accuracyA)), as.numeric(as.matrix(accuracyD)), as.numeric(as.matrix(precisionA)), as.numeric(as.matrix(precisionD)), as.numeric(as.matrix(FstatA)), as.numeric(as.matrix(FstatD)), as.numeric(as.matrix(MCC)))
-names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","accuracyA", "accuracyD", "precisionA", "precisionD", "FstatA", "FstatD", "MCC")
+resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)),  as.numeric(as.matrix(resBinA$precision)), as.numeric(as.matrix(resBinD$precision)), as.numeric(as.matrix(resBinA$recall)), as.numeric(as.matrix(resBinD$recall)), as.numeric(as.matrix(resBinA$F1)), as.numeric(as.matrix(resBinD$F1)) )
+names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","precisionA", "precisionD", "recallA", "recallD", "F1A", "F1D")
 
 ## plot and save results
 kallisto<-res
@@ -782,19 +574,13 @@ textplot(round(resEffi*100,2))
 mtext("Efficiency (%)")
 textplot(round(resDisc*100,2))
 mtext("Discrepancy (%)")
-textplot(round(resAccu*100,2))
-mtext("Accuracy (%)")
-textplot(round(resPrec*100,2))
-mtext("Precision (%)")
-textplot(round(resFstat*100,2))
-mtext("F measure (%)")
-textplot(round(resMCC*100,2))
-mtext("MCC (%)")
-
+textplot(round(resBinA$summary*100,2))
+mtext("At Metrics (%)")
+textplot(round(resBinD$summary*100,2))
+mtext("Dt Metrics (%)")
 dev.off()
 
-kallistoSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, Accuracy=resAccu, Precision=resPrec, Fmeasure=resFstat, MCC=resMCC)
-
+kallistoSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, binA=resBinA$summary, binB=resBinD$summary)
 save(kallisto, kallistoH, kallistoSummary, file="s2.assign_eval.kallisto.Rdata")
 
 #######################
@@ -838,37 +624,6 @@ resEffi <- as.data.frame(rbind(overall, bySamples))
 names(resEffi) <-c("total","At","Dt")
 resEffi
 
-
-## calculate assignment accuracy - percentage of correctly partitioned reads among assigned reads
-# mis-assigned reads cannot be directly counted from ADs reads, so using mis-assigned from independent A2 and D5 mapping to approximete.
-# This approximation can be validated by comparing assigned reads between observation (ADs.At + ADs.Dt) and expectation (A2.At + A2.Dt + D5.At + D5.Dt), as:
-summary(as.numeric(as.matrix(( (ADs.At + ADs.Dt) - (A2.At + A2.Dt + D5.At + D5.Dt))/(ADs.At + ADs.Dt) ) ) )
-summary(as.numeric(as.matrix((ADs.At + ADs.Dt) - (A2.At + A2.Dt + D5.At + D5.Dt) ) ) )
-summary(as.numeric(as.matrix((ADs.At) - (A2.At + D5.At) ) ) )
-# given the equal amounts of assigned reads between ADs and A2+D5, we accecpt that rsem partitioning worked in a consistent manner, that mis-assigned reads during A2+D5 will stay mis-assigned in ADs
-true <- D5.Dt + A2.At
-trueA <- A2.At
-trueD <- D5.Dt
-
-diploid <- A2.At + A2.Dt + D5.Dt + D5.At
-diploidA <- A2.At + A2.Dt
-diploidD <- D5.Dt + D5.At
-
-accuracy <- true/diploid
-accuracyA <- trueA/diploidA
-accuracyD <- trueD/diploidD
-
-quantile(as.numeric(as.matrix(accuracy)),na.rm=TRUE) #NaN from 0/0, no way to learn
-quantile(as.numeric(as.matrix(accuracyA)),na.rm=TRUE) #NaN from 0/0, no way to learn
-quantile(as.numeric(as.matrix(accuracyD)),na.rm=TRUE) #NaN from 0/0, no way to learn
-
-# summary table
-overall <- c(sum(true)/sum(diploid), sum(trueA)/sum(diploidA), sum(trueD)/sum(diploidD))
-bySamples<-cbind(apply(true,2,sum)/apply(diploid,2,sum),apply(trueA,2,sum)/apply(diploidA,2,sum),apply(trueD,2,sum)/apply(diploidD,2,sum))
-resAccu <- as.data.frame(rbind(overall, bySamples))
-names(resAccu) <-c("total","At","Dt")
-resAccu
-
 ## calculate assignment discrepancy - percentage of absolute diffence between observed and expected values  among assigned reads
 # discrepancy is an estimate very similar to inaccuracy, but reflect the observed differences in read counts, while inaccuracy reflects the inherent assignment actions. Inaccurate read assignments both for At and Dt can sometimes cancel out each other and do not lead to discrepancy between expected and observed count numbers.
 different <- abs(ADs.At-A2.Total)+abs(ADs.Dt-D5.Total)
@@ -897,56 +652,14 @@ resDisc <- as.data.frame(rbind(overall, bySamples))
 names(resDisc) <-c("total","At","Dt")
 resDisc
 
-## Additionally from the perspective of Precision and recall, we obtained TP, TN, FP, FN from the diploid datasets for calculation. The recall is equivalent to previous Accuracy calculated for homoeologs.
-recallA <- A2.At/(A2.At + A2.Dt)
-recallD <- D5.Dt/(D5.Dt + D5.At)
-recall<- accuracy
-# precision
-precisionA <- A2.At/(A2.At + D5.At)
-precisionD <- D5.Dt/(D5.Dt + A2.Dt)
-# or
-positive <- A2.At + D5.At + D5.Dt + A2.Dt  #same as diploid
-positiveA <- A2.At + D5.At
-positiveD <- D5.Dt + A2.Dt
-precision <- true/positive
-precisionA <- trueA/positiveA
-precisionD <- trueD/positiveD
-# summary table
-overall <- c(sum(true)/sum(positive), sum(trueA)/sum(positiveA), sum(trueD)/sum(positiveD))
-bySamples<-cbind(apply(true,2,sum)/apply(positive,2,sum),apply(trueA,2,sum)/apply(positiveA,2,sum),apply(trueD,2,sum)/apply(positiveD,2,sum))
-resPrec <- as.data.frame(rbind(overall, bySamples))
-names(resPrec) <-c("total","At","Dt")
-resPrec
-# same values for paired reads between recall and precision, all as Accuracy
-resPrec$total - resAccu$total
-# F= 2x(precision x recall)/(precision + recall)
-FstatA <- 2*(recallA*precisionA)/(recallA+precisionA)
-FstatD <- 2*(recallD*precisionD)/(recallD+precisionD)
-Fstat <- 2*(recall*precision)/(recall+precision)  # same as recall or precision or accuracy, not really meaningful
-
-# summary table
-overall <- c(mean(as.numeric(as.matrix(FstatA)), na.rm=TRUE), mean(as.numeric(as.matrix(FstatD)), na.rm=TRUE))
-bySamples<-cbind( apply(FstatA,2,function(x)mean(x, na.rm=TRUE)),apply(FstatD,2,function(x)mean(x, na.rm=TRUE)))
-resFstat <- as.data.frame(rbind(overall, bySamples))
-names(resFstat) <-c( "At","Dt")
-resFstat
-
-## MCC
-TP = A2.At
-TN = D5.Dt
-FP = D5.At
-FN = A2.Dt
-MCC = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
-MCCAn = MCC
-MCCDn = MCC
-
-overall <- c(mean(as.numeric(as.matrix(MCC)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCAn)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCDn)), na.rm=TRUE) )
-bySamples<-cbind( apply(MCC,2,function(x)mean(x, na.rm=TRUE)),apply(MCCAn,2,function(x)mean(x, na.rm=TRUE)),apply(MCCDn,2,function(x)mean(x, na.rm=TRUE)))
-resMCC <- as.data.frame(rbind(overall, bySamples))
-names(resMCC) <-c( "total", "At","Dt")
-resMCC
-
-
+## binary classification evaluation
+# A as TRUE
+resBinA=binC(TP = A2.At, TN = D5.Dt, FP = D5.At ,FN = A2.Dt)
+# D as TRUE
+resBinD=binC(TP = D5.Dt, TN = A2.At, FP = A2.Dt ,FN = D5.At)
+# summary
+resBinA$summary
+resBinD$summary
 ###############
 
 ## prepare explainatory variables for analysis
@@ -990,15 +703,15 @@ tissue <- rep(coldata$tissue, each=37223)
 rep <- rep(as.numeric(gsub("R","",coldata$rep)), each=37223)
 # length corresponding to 37223 genes X 11 samples matrix
 geneLenM <- rep(len, 33)
-percentageEffectM <- c( rep(ratio100,11),rep(ratio300,22) )
+percentageEffectM <- c( rep(ratio300,22),rep(ratio100,11) )
 
 ## make working dataset
-res <- data.frame(gene, sample, tissue, rep, geneLenM, percentageEffectM, expression=as.numeric(as.matrix(expression)), expression.log2=as.numeric(as.matrix(expression.log2)), efficiency=as.numeric(as.matrix(efficiency)), discrepancy=as.numeric(as.matrix(discrepancy)), accuracy=as.numeric(as.matrix(accuracy)), precision=as.numeric(as.matrix(precision)))
+res <- data.frame(gene, sample, tissue, rep, geneLenM, percentageEffectM, expression=as.numeric(as.matrix(expression)), expression.log2=as.numeric(as.matrix(expression.log2)), efficiency=as.numeric(as.matrix(efficiency)), discrepancy=as.numeric(as.matrix(discrepancy)), accuracy=as.numeric(as.matrix(resBinA$accuracy)), mcc=as.numeric(as.matrix(resBinA$MCC)))
 # discrepancy very tricky:
 # res$discrepancy0 <- res$discrepancy
 # res$discrepancy0[discrepancy>30] <- NA
-resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)), as.numeric(as.matrix(accuracyA)), as.numeric(as.matrix(accuracyD)), as.numeric(as.matrix(precisionA)), as.numeric(as.matrix(precisionD)), as.numeric(as.matrix(FstatA)), as.numeric(as.matrix(FstatD)), as.numeric(as.matrix(MCC)))
-names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","accuracyA", "accuracyD", "precisionA", "precisionD", "FstatA", "FstatD","MCC")
+resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)),  as.numeric(as.matrix(resBinA$precision)), as.numeric(as.matrix(resBinD$precision)), as.numeric(as.matrix(resBinA$recall)), as.numeric(as.matrix(resBinD$recall)), as.numeric(as.matrix(resBinA$F1)), as.numeric(as.matrix(resBinD$F1)) )
+names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","precisionA", "precisionD", "recallA", "recallD", "F1A", "F1D")
 
 ## plot and save results
 rsem<-res
@@ -1013,17 +726,14 @@ textplot(round(resEffi*100,2))
 mtext("Efficiency (%)")
 textplot(round(resDisc*100,2))
 mtext("Discrepancy (%)")
-textplot(round(resAccu*100,2))
-mtext("Accuracy (%)")
-textplot(round(resPrec*100,2))
-mtext("Precision (%)")
-textplot(round(resFstat*100,2))
-mtext("F measure (%)")
-textplot(round(resMCC*100,2))
-mtext("MCC (%)")
+textplot(round(resBinA$summary*100,2))
+mtext("At Metrics (%)")
+textplot(round(resBinD$summary*100,2))
+mtext("Dt Metrics (%)")
 dev.off()
 
-rsemSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, Accuracy=resAccu, Precision=resPrec, Fmeasure=resFstat, MCC=resMCC)
+
+rsemSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, binA=resBinA$summary, binB=resBinD$summary)
 
 save(rsem, rsemH, rsemSummary, file="s2.assign_eval.rsem.Rdata")
 
@@ -1069,34 +779,6 @@ resEffi <- as.data.frame(rbind(overall, bySamples))
 names(resEffi) <-c("total","At","Dt")
 resEffi
 
-## calculate assignment accuracy - percentage of correctly partitioned reads among assigned reads
-# different from polycat, mis-assigned reads can be directly counted from ADs reads
-summary(as.numeric(as.matrix(( (ADs.At + ADs.Dt) - (At.T + At.F + Dt.T + Dt.F))/(ADs.At + ADs.Dt) ) ) )
-# given the equal amounts of assigned reads between ADs and A2+D5, we accecpt that hylite partitioning worked in a consistent manner, that mis-assigned reads during A2+D5 will stay mis-assigned in ADs
-true <- At.T + Dt.T
-trueA <- At.T
-trueD <- Dt.T
-
-diploid <- At.T + Dt.T + At.F + Dt.F
-diploidA <- At.T + Dt.F
-diploidD <- Dt.T + At.F
-
-accuracy <- true/diploid
-accuracyA <- trueA/diploidA
-accuracyD <- trueD/diploidD
-
-quantile(as.numeric(as.matrix(accuracy)),na.rm=TRUE) #NaN from 0/0, no way to learn
-quantile(as.numeric(as.matrix(accuracyA)),na.rm=TRUE) #NaN from 0/0, no way to learn
-quantile(as.numeric(as.matrix(accuracyD)),na.rm=TRUE) #NaN from 0/0, no way to learn
-
-# summary table
-overall <- c(sum(true)/sum(diploid), sum(trueA)/sum(diploidA), sum(trueD)/sum(diploidD))
-bySamples<-cbind(apply(true,2,sum)/apply(diploid,2,sum),apply(trueA,2,sum)/apply(diploidA,2,sum),apply(trueD,2,sum)/apply(diploidD,2,sum))
-resAccu <- as.data.frame(rbind(overall, bySamples))
-names(resAccu) <-c("total","At","Dt")
-resAccu
-
-
 ## calculate assignment discrepancy - percentage of absolute diffence between observed and expected values  among assigned reads
 # discrepancy is an estimate very similar to inaccuracy, but reflect the observed differences in read counts, while inaccuracy reflects the inherent assignment actions. Inaccurate read assignments both for At and Dt can sometimes cancel out each other and do not lead to discrepancy between expected and observed count numbers.
 different <- abs(ADs.At-A2.Total)+abs(ADs.Dt-D5.Total)
@@ -1125,62 +807,14 @@ resDisc <- as.data.frame(rbind(overall, bySamples))
 names(resDisc) <-c("total","At","Dt")
 resDisc
 
-## Additionally from the perspective of Precision and recall, we obtained TP, TN, FP, FN from the diploid datasets for calculation. The recall is equivalent to previous Accuracy calculated for homoeologs.
-recallA <- At.T/(At.T + Dt.F)
-recallD <- Dt.T/(Dt.T + At.F)
-recall<- accuracy
-# precision
-precisionA <- At.T/(At.T + At.F)
-precisionD <- Dt.T/(Dt.T + Dt.F)
-# or
-positive <- At.T + Dt.T + At.F + Dt.F  #same as diploid
-positiveA <- At.T + At.F
-positiveD <- Dt.T + Dt.F
-precision <- true/positive
-precisionA <- trueA/positiveA
-precisionD <- trueD/positiveD
-# summary table
-overall <- c(sum(true)/sum(positive), sum(trueA)/sum(positiveA), sum(trueD)/sum(positiveD))
-bySamples<-cbind(apply(true,2,sum)/apply(positive,2,sum),apply(trueA,2,sum)/apply(positiveA,2,sum),apply(trueD,2,sum)/apply(positiveD,2,sum))
-resPrec <- as.data.frame(rbind(overall, bySamples))
-names(resPrec) <-c("total","At","Dt")
-resPrec
-# same values for paired reads between recall and precision, all as Accuracy
-resPrec$total - resAccu$total
-# F= 2x(precision x recall)/(precision + recall)
-FstatA <- 2*(recallA*precisionA)/(recallA+precisionA)
-FstatD <- 2*(recallD*precisionD)/(recallD+precisionD)
-Fstat <- 2*(recall*precision)/(recall+precision)  # same as recall or precision or accuracy, not really meaningful
-
-# summary table
-overall <- c(mean(as.numeric(as.matrix(FstatA)), na.rm=TRUE), mean(as.numeric(as.matrix(FstatD)), na.rm=TRUE))
-bySamples<-cbind( apply(FstatA,2,function(x)mean(x, na.rm=TRUE)),apply(FstatD,2,function(x)mean(x, na.rm=TRUE)))
-resFstat <- as.data.frame(rbind(overall, bySamples))
-names(resFstat) <-c( "At","Dt")
-resFstat
-
-## MCC
-TP = At.T
-TN = Dt.T
-FP = At.F
-FN = Dt.F
-MCC = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
-D5.N = A2.Total - At.T - Dt.F
-A2.N = D5.Total - Dt.T - At.F
-TN = Dt.T + D5.N
-FN = Dt.F + A2.N
-MCCAn = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
-TP = Dt.T
-TN = At.T + A2.N
-FP = At.F
-FN = Dt.F + D5.N
-MCCDn = (TP*TN - FP*FN)/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
-
-overall <- c(mean(as.numeric(as.matrix(MCC)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCAn)), na.rm=TRUE), mean(as.numeric(as.matrix(MCCDn)), na.rm=TRUE) )
-bySamples<-cbind( apply(MCC,2,function(x)mean(x, na.rm=TRUE)),apply(MCCAn,2,function(x)mean(x, na.rm=TRUE)),apply(MCCDn,2,function(x)mean(x, na.rm=TRUE)))
-resMCC <- as.data.frame(rbind(overall, bySamples))
-names(resMCC) <-c( "total", "At","Dt")
-resMCC
+## binary classification evaluation
+# A as TRUE
+resBinA=binC(TP = At.T, TN = Dt.T, FP = At.F, FN = Dt.F)
+# D as TRUE
+resBinD=binC(TP = Dt.T, TN = At.T, FP = Dt.F ,FN = At.F)
+# summary
+resBinA$summary
+resBinD$summary
 
 
 ###############
@@ -1226,15 +860,15 @@ tissue <- rep(coldata$tissue, each=37223)
 rep <- rep(as.numeric(gsub("R","",coldata$rep)), each=37223)
 # length corresponding to 37223 genes X 11 samples matrix
 geneLenM <- rep(len, 33)
-percentageEffectM <- c( rep(ratio100,11),rep(ratio300,22) )
+percentageEffectM <- c( rep(ratio300,22),rep(ratio100,11) )
 
 ## make working dataset
-res <- data.frame(gene, sample, tissue, rep, geneLenM, percentageEffectM, expression=as.numeric(as.matrix(expression)), expression.log2=as.numeric(as.matrix(expression.log2)), efficiency=as.numeric(as.matrix(efficiency)), discrepancy=as.numeric(as.matrix(discrepancy)), accuracy=as.numeric(as.matrix(accuracy)), precision=as.numeric(as.matrix(precision)))
+res <- data.frame(gene, sample, tissue, rep, geneLenM, percentageEffectM, expression=as.numeric(as.matrix(expression)), expression.log2=as.numeric(as.matrix(expression.log2)), efficiency=as.numeric(as.matrix(efficiency)), discrepancy=as.numeric(as.matrix(discrepancy)), accuracy=as.numeric(as.matrix(resBinA$accuracy)), mcc=as.numeric(as.matrix(resBinA$MCC)))
 # discrepancy very tricky:
 # res$discrepancy0 <- res$discrepancy
 # res$discrepancy0[discrepancy>30] <- NA
-resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)), as.numeric(as.matrix(accuracyA)), as.numeric(as.matrix(accuracyD)), as.numeric(as.matrix(precisionA)), as.numeric(as.matrix(precisionD)), as.numeric(as.matrix(FstatA)), as.numeric(as.matrix(FstatD)), as.numeric(as.matrix(MCC)), as.numeric(as.matrix(MCCAn)), as.numeric(as.matrix(MCCDn)))
-names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","accuracyA", "accuracyD", "precisionA", "precisionD", "FstatA", "FstatD","MCC","MCCAn","MCCDn")
+resH <- data.frame(as.numeric(as.matrix(efficiencyA)), as.numeric(as.matrix(efficiencyD)), as.numeric(as.matrix(discrepancyA)), as.numeric(as.matrix(discrepancyD)),  as.numeric(as.matrix(resBinA$precision)), as.numeric(as.matrix(resBinD$precision)), as.numeric(as.matrix(resBinA$recall)), as.numeric(as.matrix(resBinD$recall)), as.numeric(as.matrix(resBinA$F1)), as.numeric(as.matrix(resBinD$F1)) )
+names(resH) <- c("efficiencyA", "efficiencyD", "discrepancyA", "discrepancyD","precisionA", "precisionD", "recallA", "recallD", "F1A", "F1D")
 
 ## plot and save results
 hylite<-res
@@ -1249,17 +883,13 @@ textplot(round(resEffi*100,2))
 mtext("Efficiency (%)")
 textplot(round(resDisc*100,2))
 mtext("Discrepancy (%)")
-textplot(round(resAccu*100,2))
-mtext("Accuracy (%)")
-textplot(round(resPrec*100,2))
-mtext("Precision (%)")
-textplot(round(resFstat*100,2))
-mtext("F measure (%)")
-textplot(round(resMCC*100,2))
-mtext("MCC (%)")
+textplot(round(resBinA$summary*100,2))
+mtext("At Metrics (%)")
+textplot(round(resBinD$summary*100,2))
+mtext("Dt Metrics (%)")
 dev.off()
 
-hyliteSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, Accuracy=resAccu, Precision=resPrec, Fmeasure=resFstat, MCC=resMCC)
+hyliteSummary<-list(info=info, Efficiency=resEffi, Discrepancy=resDisc, binA=resBinA$summary, binB=resBinD$summary)
 
 save(hylite, hyliteH, hyliteSummary, file="s2.assign_eval.hylite.Rdata")
 
