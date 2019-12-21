@@ -9,22 +9,29 @@
 # 1. Transcript (Exon) annotation GFF file: remove comment lines, and keep transcript names in column 9
 exonFile <- "D5.exon_unnamed.gff"
 # 2. Homoeolog SNP index file
-snpFile <- "D13.snp4.0"
-# 3. RNA-seq sequencing read length
+snpFile <- "D13.snp4.0.txt"
+# 3. RNA-seq sequencing read length, e.g. SE100 or PE50
 readLen <- 100
 
 ## OUTPUT files will include
-snpRangesFile <- "~/snp.gff"
-EffectiveRegionsFile <- "~/D5.theoretical.gff"
-eflenListFile <-"~/eflenList.txt"
+snpRangesFile <- paste0("output/snp.rl",readLen,".gff")
+EffectiveRegionsFile <- paste0("output/D5.theoretical.rl",readLen,".gff")
+eflenListFile <-paste0("output/eflenList.rl",readLen,".txt")
 
 ## Load libraries
 library(GenomicRanges)
 library(rtracklayer)
 library(genomation)
 
+## read exon to get actual transcript length
+gr = gffToGRanges(exonFile )
+len<-data.frame(id=gr$group, len=width(gr))
+len<-aggregate(len$len,by=list(len$id),sum)
+names(len)<-c("id","trueLen")
+
 ## read in SNP file BUT make sure that the comment character is removed from line 1 first
-snp <- read.table(snpFile, header=TRUE, sep = "\t")
+snp <- read.table(snpFile, sep = "\t")
+names(snp) = c("Chr","Pos","A","D")
 head(snp)
 #     Chr Pos A D
 #   Chr01  59 C T
@@ -54,12 +61,6 @@ gr = gffToGRanges(EffectiveRegionsFile )
 efflen<-data.frame(id=gr$group, len=width(gr))
 efflen<-aggregate(efflen$len,by=list(efflen$id),sum)
 names(efflen)<-c("id","effectiveLen")
-
-## read exon to get actual transcript length
-gr = gffToGRanges(exonFile )
-len<-data.frame(id=gr$group, len=width(gr))
-len<-aggregate(len$len,by=list(len$id),sum)
-names(len)<-c("id","trueLen")
 
 ## combine and get %
 LEN<- merge(len,efflen,all.x=TRUE, all.y=TRUE)
