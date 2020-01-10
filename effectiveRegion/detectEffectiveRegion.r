@@ -6,7 +6,7 @@
 ## Description: For each transcript, only regions contraining homoeolog diagnostic SNPs could
 
 ## Required INPUT include:
-# 1. Transcript (Exon) annotation GFF file: remove comment lines, and keep transcript names in column 9
+# 1. Transcript annotation GFF file (coding regions only): remove comment lines, and keep transcript names in column 9
 exonFile <- "D5.exon_unnamed.gff"
 # 2. Homoeolog SNP index file
 snpFile <- "D13.snp4.0.txt"
