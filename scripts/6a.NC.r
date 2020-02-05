@@ -3,7 +3,14 @@
 # system("mem")
 system("ulimit -v")
 # better use bigram for this analysis
+library(igraph)
+get_short_path=function(y=g, v,to){
+    ds =  distances(obs.g, v, to)
+    return(mean(ds[is.finite(ds)]))
+}
+library(dplyr)
 library(WGCNA)
+library(psych)
 options(stringsAsFactors = FALSE);
 enableWGCNAThreads(nThreads=10)
 source("6.FUN.r")
@@ -34,18 +41,22 @@ netType
 #   10 weighted  WGCNA 12.000 weighted.WGCNA.12
 #   11 weighted  WGCNA 24.000 weighted.WGCNA.24
 
-rdatafiles<-grep("R-05-dataInput",list.files(),value=TRUE)
+rdatafiles<-list.files(pattern="R-05-dataInput")
 rdatafiles
-# "R-05-dataInput.hylite_log2rpkm.RData"
-# "R-05-dataInput.hylite_rld.RData"
-# "R-05-dataInput.kallisto_log2rpkm.RData"
-# "R-05-dataInput.kallisto_rld.RData"
-# "R-05-dataInput.polycat_log2rpkm.RData"
-# "R-05-dataInput.polycat_rld.RData"
-# "R-05-dataInput.rsem_log2rpkm.RData"
-# "R-05-dataInput.rsem_rld.RData"
-# "R-05-dataInput.salmon_log2rpkm.RData"
-# "R-05-dataInput.salmon_rld.RData"
+#  [1] "R-05-dataInput.bowtie_log2rpkm.RData"
+#  [2] "R-05-dataInput.bowtie_rld.RData"
+#  [3] "R-05-dataInput.eaglerc_log2rpkm.RData"
+#  [4] "R-05-dataInput.eaglerc_rld.RData"
+#  [5] "R-05-dataInput.hylite_log2rpkm.RData"
+#  [6] "R-05-dataInput.hylite_rld.RData"
+#  [7] "R-05-dataInput.kallisto_log2rpkm.RData"
+#  [8] "R-05-dataInput.kallisto_rld.RData"
+#  [9] "R-05-dataInput.polycat_log2rpkm.RData"
+# [10] "R-05-dataInput.polycat_rld.RData"
+# [11] "R-05-dataInput.rsem_log2rpkm.RData"
+# [12] "R-05-dataInput.rsem_rld.RData"
+# [13] "R-05-dataInput.salmon_log2rpkm.RData"
+# [14] "R-05-dataInput.salmon_rld.RData"
 load(rdatafiles[1])
 use=colnames(multiExpr[[1]]$data)
 print(length(use))
@@ -56,8 +67,12 @@ for(i in rdatafiles[-1])
     print(length(ids))
     use=intersect(use, ids)
 }
-print(length(use)) #62656
-netSize=10000
+print(length(use)) # 52000
+# how many in pairs or solo
+y=table(gsub("a$|d$","",use))
+table(y==2) # 25907 pairs and 186 solo
+idsP =names(y)[y==2]
+netSize=5200
 
 rm(sumCorr)
 rm(sumBinCorr)
@@ -65,8 +80,7 @@ rm(sumBinCorr)
 # randomly choose 10000 genes to obstain corr, repeat 10 times
 for(p in 1:10){
     message(paste0("Start permutation: ",p))
-    sub=sample(1:length(use),netSize, replace=F)
-    
+    sub=sample(1:length(idsP),netSize/2, replace=F)
     for(file in rdatafiles)
     {
         start<-proc.time()
@@ -78,16 +92,17 @@ for(p in 1:10){
         # get expression datasets of exp and obs
         exp<-as.data.frame(multiExpr[[which(shortLabels=="A2D5")]]$data[,use])
         obs<-as.data.frame(multiExpr[[which(shortLabels=="ADs")]]$data[,use])
-        
+   
         # subsample
-        id=colnames(exp)[sub]
-        indA=grep("a$",id)
-        indD=grep("d$",id)
+        indA = paste0(idsP[sub],"a")
+        indD = paste0(idsP[sub],"d")
+        id=c(indA, indD)
+        if(grepl("eaglerc",tag)){geneL=geneL.vcf}else{geneL=geneL.snp}
         bins = geneL[gsub("a$|d$","",id),"bin300"]
         
         # Peason's correlation
-        exp.r <- cor(exp[,sub],method = "pearson",nThread=8)
-        obs.r <- cor(obs[,sub],method = "pearson",nThread=8)
+        exp.r <- cor(exp[,id],method = "pearson",nThread=8)
+        obs.r <- cor(obs[,id],method = "pearson",nThread=8)
  
         for(net in 1:nrow(netType))
         {
@@ -97,19 +112,70 @@ for(p in 1:10){
                 message(paste0("----------------------------------\n...network type ",netType$net[net],": ", netType$desc[net]))
                 exp.net <- build_binary_net(exp.r, metric = netType$metric[net], cutoff = netType$cutoff[net] ,subAD=FALSE )
                 obs.net <- build_binary_net(obs.r, metric = netType$metric[net], cutoff = netType$cutoff[net], subAD=FALSE )
+                # igraph to get
+                exp.g <- graph_from_adjacency_matrix(exp.net, mode="undirected",diag=FALSE)
+                obs.g <- graph_from_adjacency_matrix(obs.net, mode="undirected",diag=FALSE)
                 
             } else if(netType$edge[net]=="weighted")
             {
                 message(paste0("----------------------------------\n...network type ",netType$net[net],": ", netType$desc[net]))
                 exp.net <- build_wgcna_net(exp.r, power=netType$cutoff[net], subAD=FALSE )
                 obs.net <- build_wgcna_net(obs.r, power=netType$cutoff[net], subAD=FALSE )
+                # igraph to get
+                exp.g <- graph_from_adjacency_matrix(exp.net, mode="undirected",diag=FALSE, weighted=T)
+                obs.g <- graph_from_adjacency_matrix(obs.net, mode="undirected",diag=FALSE, weighted=T)
             }
             
             # overall node connectivity correlation
             df=data.frame(exp.k =rowSums(exp.net)-1, obs.k=rowSums(obs.net)-1, bins=bins)
             corr <- cor(df$exp.k,df$obs.k)           
-            # density
-            tt<-data.frame(correlation=corr, density.obs.A = mean(obs.net[indA,indA]), density.obs.D = mean(obs.net[indD,indD]), density.obs.interAD = mean(obs.net[indA,indD]), density.exp.A = mean(exp.net[indA,indA]), density.exp.D = mean(exp.net[indD,indD]), density.exp.interAD = mean(exp.net[indA,indD]),pipeline=gsub("_.*","",tag), transformation=gsub(".*_","",tag), netType= netType$desc[net], permutation = p)
+            ##--- density
+            # density.obs = edge_density(obs.g),
+            # density.obs.A = edge_density(induced_subgraph(obs.g,indA)),
+            # density.obs.D = edge_density(induced_subgraph(obs.g,indD)),
+            density.obs = mean(obs.net[upper.tri(obs.net)])
+            density.obs.A = mean(obs.net[indA,indA][upper.tri(obs.net[indA,indA])])
+            density.obs.D = mean(obs.net[indD,indD][upper.tri(obs.net[indD,indD])])
+            density.obs.interAD = mean(obs.net[indA,indD])
+            density.exp = mean(exp.net[upper.tri(exp.net)])
+            density.exp.A = mean(exp.net[indA,indA][upper.tri(exp.net[indA,indA])])
+            density.exp.D = mean(exp.net[indD,indD][upper.tri(exp.net[indD,indD])])
+            density.exp.interAD = mean(exp.net[indA,indD])
+            if(netType$edge[net]=="binary")
+            {
+                ##--- average shortest path
+                path.obs = mean_distance(obs.g, directed=FALSE)
+                path.obs.A =  get_short_path(obs.g,v=indA,to=indA)
+                path.obs.D =  get_short_path(obs.g,v=indD,to=indD)
+                path.obs.interAD =   get_short_path(obs.g,v=indD,to=indA)
+                path.exp = mean_distance(exp.g, directed=FALSE)
+                path.exp.A =  get_short_path(exp.g,v=indA,to=indA)
+                path.exp.D =  get_short_path(exp.g,v=indD,to=indD)
+                path.exp.interAD =   get_short_path(exp.g,v=indD,to=indA)
+                ##--- clustering coefficiency
+                clusterCoef.obs   = transitivity(obs.g)
+                clusterCoef.obs.A = transitivity(induced_subgraph(obs.g,indA))
+                clusterCoef.obs.D = transitivity(induced_subgraph(obs.g,indD))
+                clusterCoef.exp   =  transitivity(exp.g)
+                clusterCoef.exp.A = transitivity(induced_subgraph(exp.g,indA))
+                clusterCoef.exp.D = transitivity(induced_subgraph(exp.g,indD))
+                ##---put together
+                tt<-data.frame(pipeline=gsub("_.*","",tag), transformation=gsub(".*_","",tag), netType= netType$desc[net], permutation = p, correlation=corr,
+                density.obs, density.obs.A, density.obs.D, density.obs.interAD,
+                density.exp, density.exp.A, density.exp.D, density.exp.interAD,
+                path.obs, path.obs.A, path.obs.D, path.obs.interAD,
+                path.exp, path.exp.A, path.exp.D, path.exp.interAD,
+                clusterCoef.obs, clusterCoef.obs.A, clusterCoef.obs.D,
+                clusterCoef.exp, clusterCoef.exp.A, clusterCoef.exp.D )
+            }else{
+                tt<-data.frame(pipeline=gsub("_.*","",tag), transformation=gsub(".*_","",tag), netType= netType$desc[net], permutation = p, correlation=corr,
+                density.obs, density.obs.A, density.obs.D, density.obs.interAD,
+                density.exp, density.exp.A, density.exp.D, density.exp.interAD,
+                path.obs=NA, path.obs.A=NA, path.obs.D=NA, path.obs.interAD=NA,
+                path.exp=NA, path.exp.A=NA, path.exp.D=NA, path.exp.interAD=NA,
+                clusterCoef.obs=NA, clusterCoef.obs.A=NA, clusterCoef.obs.D=NA,
+                clusterCoef.exp=NA, clusterCoef.exp.A=NA, clusterCoef.exp.D=NA )
+            }
             print(tt)
             if(!exists("sumCorr")){sumCorr<-tt}else{sumCorr<-rbind(sumCorr,tt)}
             

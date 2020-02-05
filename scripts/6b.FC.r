@@ -38,18 +38,22 @@ netType
 #   11 weighted  WGCNA 24.000 weighted.WGCNA.24
 
 
-rdatafiles<-grep("R-05-dataInput",list.files(),value=TRUE)
+rdatafiles<-list.files(pattern="R-05-dataInput")
 rdatafiles
-# "R-05-dataInput.hylite_log2rpkm.RData"
-# "R-05-dataInput.hylite_rld.RData"
-# "R-05-dataInput.kallisto_log2rpkm.RData"
-# "R-05-dataInput.kallisto_rld.RData"
-# "R-05-dataInput.polycat_log2rpkm.RData"
-# "R-05-dataInput.polycat_rld.RData"
-# "R-05-dataInput.rsem_log2rpkm.RData"
-# "R-05-dataInput.rsem_rld.RData"
-# "R-05-dataInput.salmon_log2rpkm.RData"
-# "R-05-dataInput.salmon_rld.RData"
+#  [1] "R-05-dataInput.bowtie_log2rpkm.RData"
+#  [2] "R-05-dataInput.bowtie_rld.RData"
+#  [3] "R-05-dataInput.eaglerc_log2rpkm.RData"
+#  [4] "R-05-dataInput.eaglerc_rld.RData"
+#  [5] "R-05-dataInput.hylite_log2rpkm.RData"
+#  [6] "R-05-dataInput.hylite_rld.RData"
+#  [7] "R-05-dataInput.kallisto_log2rpkm.RData"
+#  [8] "R-05-dataInput.kallisto_rld.RData"
+#  [9] "R-05-dataInput.polycat_log2rpkm.RData"
+# [10] "R-05-dataInput.polycat_rld.RData"
+# [11] "R-05-dataInput.rsem_log2rpkm.RData"
+# [12] "R-05-dataInput.rsem_rld.RData"
+# [13] "R-05-dataInput.salmon_log2rpkm.RData"
+# [14] "R-05-dataInput.salmon_rld.RData"
 load(rdatafiles[1])
 use=colnames(multiExpr[[1]]$data)
 print(length(use))
@@ -60,8 +64,12 @@ for(i in rdatafiles[-1])
     print(length(ids))
     use=intersect(use, ids)
 }
-print(length(use)) #62656
-netSize=10000
+print(length(use)) # 52000
+# how many in pairs or solo
+y=table(gsub("a$|d$","",use))
+table(y==2) # 25907 pairs and 186 solo
+idsP =names(y)[y==2]
+netSize=5200
 
 rm(sumCorr)
 # calculating whole network r and adjacency require too much memory
@@ -69,8 +77,7 @@ rm(sumCorr)
 
 for(p in 1:10){
     message(paste0("Start permutation: ",p))
-    sub=sample(1:length(use),netSize, replace=F)
-    
+    sub=sample(1:length(idsP),netSize/2, replace=F)
     for(file in rdatafiles)
     {
         start<-proc.time()
@@ -84,13 +91,13 @@ for(p in 1:10){
         obs<-as.data.frame(multiExpr[[which(shortLabels=="ADs")]]$data[,use])
         
         # subsample
-        id=colnames(exp)[sub]
-        indA=grep("a$",id)
-        indD=grep("d$",id)
+        indA = paste0(idsP[sub],"a")
+        indD = paste0(idsP[sub],"d")
+        id=c(indA, indD)
         
         # Peason's correlation
-        exp.r <- cor(exp[,sub],method = "pearson",nThread=8)
-        obs.r <- cor(obs[,sub],method = "pearson",nThread=8)
+        exp.r <- cor(exp[,id],method = "pearson",nThread=8)
+        obs.r <- cor(obs[,id],method = "pearson",nThread=8)
         
         for(net in 1:nrow(netType))
         {
@@ -113,7 +120,7 @@ for(p in 1:10){
             {
                 message(paste0("......",func))
                 annotation <- get(paste0(func,".AD"))
-                labels <- prep_annot(t(exp[,sub]), annotation, min = 10, max = 500)
+                labels <- prep_annot(t(exp[,id]), annotation, min = 10, max = 500)
                 # get fc
                 message(paste0("......",length(indA)," At vs ",length(indD)," Dt genes."))
                 exp.fc <- list(all=neighbor_voting(labels, exp.net, output = 'AUROC')[,"auc"], A=neighbor_voting(labels, exp.net[indA,indA], output = 'AUROC')[,"auc"], D=neighbor_voting(labels, exp.net[indD,indD], output = 'AUROC')[,"auc"], interAD=neighbor_voting(labels, exp.net[indA,indD], output = 'AUROC')[,"auc"])

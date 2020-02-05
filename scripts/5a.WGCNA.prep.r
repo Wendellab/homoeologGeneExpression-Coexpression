@@ -33,13 +33,14 @@ filterMultiExpr<-function(multiExpr,nSets)
     return(multiExpr)
 }
 
-rfiles<-grep("R-01-.*NetworkDatasets.RData",list.files(),value=TRUE)
+setwd("/work/LAS/jfw-lab/hugj2006/eflen2020/Ranalysis")
+rfiles<-grep("Aref",list.files(pattern="R-01.*.NetworkDatasets.RData"),value=TRUE,invert=TRUE)
 rfiles
-# [1] "R-01-hyliteNetworkDatasets.RData"
-# [2] "R-01-kallistoNetworkDatasets.RData"
-# [3] "R-01-polycatNetworkDatasets.RData"
-# [4] "R-01-rsemNetworkDatasets.RData"
-# [5] "R-01-salmonNetworkDatasets.RData"
+# [1] "R-01-bowtieNetworkDatasets.RData"   "R-01-eaglercNetworkDatasets.RData"
+# [3] "R-01-hyliteNetworkDatasets.RData"   "R-01-kallistoNetworkDatasets.RData"
+# [5] "R-01-polycatNetworkDatasets.RData"  "R-01-rsemNetworkDatasets.RData"
+# [7] "R-01-salmonNetworkDatasets.RData"
+
 
 pdf(file = "s5.multiExpr.clustering.pdf", width = 12, height = 12)
 for(i in rfiles){

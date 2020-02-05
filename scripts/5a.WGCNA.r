@@ -53,7 +53,7 @@ library(RColorBrewer)
 library(ggplot2);
 sessionInfo()
 
-rdatafiles<-grep("R-05-dataInput",list.files(),value=TRUE)
+rdatafiles<-grep("eaglerc",list.files(pattern="R-05-dataInput"),value=TRUE, invert=T)
 rdatafiles
 load(rdatafiles[1])
 use=colnames(multiExpr[[1]]$data)
@@ -68,16 +68,24 @@ for(i in rdatafiles[-1])
 print(length(use)) #62656
 
 Powers <- c(1,12,24)
-
+rdatafiles<-list.files(pattern="R-05-dataInput")
 for(file in rdatafiles)
 {
     # collect input dataset
     print(file)
     load(file) # "multiExpr"   "nSets"       "shortLabels"
+    flag <- gsub("R-05-dataInput.|.RData","",file)
     ori=multiExpr
     multiExpr = vector(mode = "list", length = 2)
-    multiExpr[[1]] = list(data = ori[[which(shortLabels=="A2D5")]]$data[,use])
-    multiExpr[[2]] = list(data = ori[[which(shortLabels=="ADs")]]$data[,use])
+    # get expression datasets of exp and obs
+    if(grep("eaglerc",flag)){
+       multiExpr[[1]] = list(data = ori[[which(shortLabels=="A2D5")]]$data)
+        multiExpr[[2]] = list(data = ori[[which(shortLabels=="ADs")]]$data)
+    }else{
+        multiExpr[[1]] = list(data = ori[[which(shortLabels=="A2D5")]]$data[,use])
+        multiExpr[[2]] = list(data = ori[[which(shortLabels=="ADs")]]$data[,use])
+    }
+    
     print(checkSets(multiExpr)$nGenes)
     tag=gsub(".*Input[.]|[.].*","",file)
     
@@ -129,3 +137,6 @@ for(file in rdatafiles)
         print(table(Zs>10))
     }
 }
+q()
+n
+

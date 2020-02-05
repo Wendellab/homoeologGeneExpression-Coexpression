@@ -11,11 +11,13 @@ options(scipen=999) # disable scientifc format
 
 
 # setwd("/work/LAS/jfw-lab/hugj2006/eflen/output")
-rdatafiles<-grep("R-01.*.NetworkDatasets.RData",list.files(),value=TRUE)
+setwd("/work/LAS/jfw-lab/hugj2006/eflen2020/Ranalysis")
+rdatafiles<-grep("Aref",list.files(pattern="R-01.*.NetworkDatasets.RData"),value=TRUE,invert=TRUE)
 rdatafiles
-# "R-01-hyliteNetworkDatasets.RData"   "R-01-kallistoNetworkDatasets.RData"
-# "R-01-polycatNetworkDatasets.RData"  "R-01-rsemNetworkDatasets.RData"
-# "R-01-salmonNetworkDatasets.RData"
+# [1] "R-01-bowtieNetworkDatasets.RData"   "R-01-eaglercNetworkDatasets.RData"
+# [3] "R-01-hyliteNetworkDatasets.RData"   "R-01-kallistoNetworkDatasets.RData"
+# [5] "R-01-polycatNetworkDatasets.RData"  "R-01-rsemNetworkDatasets.RData"
+# [7] "R-01-salmonNetworkDatasets.RData"
 
 ss<-proc.time()
 nSample=33
@@ -32,7 +34,8 @@ for(file in rdatafiles)
             # get expression datasets of exp and obs
             exp<-as.data.frame(multiExpr[["A2D5"]])
             obs<-as.data.frame(multiExpr[["ADs"]])
-        }else{
+        }else
+        {
             if(flag%in%c("salmon","kallisto")){
                 multiExpr = networks.tpm; message("tpm")
             }else{
@@ -69,7 +72,7 @@ for(file in rdatafiles)
 ee<-proc.time()
 run.time  <- ee-ss
 cat("\n Number of minutes running:", run.time[3]/60,"\n\n")
-save(list=m, file = paste0("s4.DC.homoeoPair.Rdata"))
+save(list=m, file = "s4.DC.homoeoPair.Rdata")
 
 ###################
 ## Post Analysis ##
@@ -78,11 +81,14 @@ save(list=m, file = paste0("s4.DC.homoeoPair.Rdata"))
 ## Analysis of homoeolog pairs
 mm<-load("s4.DC.homoeoPair.Rdata")
 mm # "hylite_rld"   "hylite_rpkm"  "polycat_rld"  "polycat_rpkm" "rsem_rld"   "rsem_rpkm"
+# fix order
+mmm= c("polycat_rld", "polycat_log2rpkm", "hylite_rld", "hylite_log2rpkm", "eaglerc_rld", "eaglerc_log2rpkm", "rsem_rld", "rsem_log2rpkm","kallisto_rld", "kallisto_log2rpkm","salmon_rld", "salmon_log2rpkm","bowtie_rld", "bowtie_log2rpkm")
+
 
 # summarize sig results
 cat<-c("+/+","+/0","+/-","0/+", "0/0", "0/-", "-/+",  "-/0", "-/-")
 res<-c("dataset","genes","sigP",paste0("P",cat))
-for(i in mm)
+for(i in mmm)
 {
     x<-get(i)
     temp<-c(i, nrow(x), length(which(x$pValDiff<0.05)), as.numeric(table(x$class[x$pValDiff<0.05]))[-1])
@@ -97,7 +103,7 @@ resS[,-1]<-apply(resS[,-1],2,as.numeric)
 # summarize Not sig results
 cat<-c("+/+","+/0","+/-","0/+", "0/0", "0/-", "-/+",  "-/0", "-/-")
 res<-c("dataset","genes","allP",paste0("A",cat))
-for(i in m)
+for(i in mmm)
 {
     x<-get(i)
     temp<-c(i, nrow(x), nrow(x), as.numeric(table(x$class))[-1])
@@ -108,6 +114,7 @@ resA<-data.frame(as.matrix(res[-1,]))
 colnames(resA) <-res[1,]
 rownames(resA)=NULL
 resA[,-1]<-apply(resA[,-1],2,as.numeric)
+write.table(cbind(resA,resS),file="s4.DC.homoeoPair.sig.txt", sep="\t")
 
 
 # Initialize tables of p-values and of the corresponding counts

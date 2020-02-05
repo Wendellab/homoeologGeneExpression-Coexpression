@@ -70,7 +70,8 @@ for(file in rdatafiles)
    
 }
 
+res$pipeline=factor(res$pipeline, levels=c("polycat","hylite","eaglerc","rsem","kallisto","salmon","bowtie"))
 library(ggplot2);
 pdf("s5.Zsummary.pdf")
-ggplot(data=res, aes(x=netType, y=Zs, fill=pipeline )) +  geom_boxplot(lwd=0.2,position=position_dodge(0.8)) + theme_bw() +theme(panel.border=element_blank(),axis.line.x=element_line(),axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Preservation of expected modules, Zsummary") + facet_grid(.~transformation)
+ggplot(data=res, aes(x=netType, y=Zs, fill=pipeline )) +  geom_boxplot(lwd=0.2,position=position_dodge(0.8)) + theme_bw() +theme(panel.border=element_blank(),axis.line.x=element_line(),axis.text.x = element_text(angle = 90, hjust = 1)) + ggtitle("Preservation of expected modules, Zsummary") + facet_grid(.~transformation)+ scale_fill_brewer(palette="Set1")
 dev.off()

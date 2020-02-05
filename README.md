@@ -8,16 +8,29 @@
 * 33 SE seed RNA-seq files. `smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/Projects/Eflen/seed_for_eflen_paper/fastq/*fq.gz` **Exclude A2-20-R2.cut.fq.gz and D5-20-R2.cut.fq.gz.**
 * 132 PE flowering time RNA-seq files. `smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/Projects/Eflen/flowerTimeDataset/fastq/*fq.gz`
 
+* `smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/Projects/Eflen2020/flowerFastq`
+* `smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/Projects/Eflen2020/seedFastq`
+
 
 ## RNA-seq mapping and homoeolog read estimation
+
+### Specifically developed for polyploid systems
+
+* [HyLite](https://hylite.sourceforge.io/index.html) automates Bowtie2 mapping followed by SNP detection and read participation [bowtie2hylite.sh](scripts/bowtie2hylite.sh)
+    * A2 reference - slurm script [runBowtie2.A2TranscriptRef.slurm](scripts/runBowtie2.A2TranscriptRef.slurm) with protocol file [samA2\_protocol\_file.txt](scripts/samA2_protocol_file.txt)
+    * D5 reference - slurm scripts [runBowtie2.D5TranscriptRef.slurm](scripts/runBowtie2.D5TranscriptRef.slurm) with protocol file [samD5\_protocol\_file.txt](scripts/samD5_protocol_file.txt).
 * GNASP mapping followed by PolyCat homoeolog read participation: bash scritps for SE ([gsnap2polycat_120116.sh](scripts/gsnap2polycat_120116.sh)) and PE ([gsnap2polycat_PE.sh](scripts/gsnap2polycat_PE.sh)) reads.
-* [RSEM](http://deweylab.github.io/RSEM/) runs Bowtie2 mapping by default against reference transcripts followed by read estimation: SE ([here](https://github.com/huguanjing/AD1_RNA-seq/blob/master/bowtie2rsem.sh)) and PE ([bowtie2rsem_PE.sh](scripts/bowtie2rsem_PE.sh)) bash scrpts.
-* [HyLite](https://hylite.sourceforge.io/index.html) automates Bowtie2 mapping against both A2 and D5 reference transcripts followed by SNP detection and read participation: bash script ([bowtie2hylite.sh](scripts/bowtie2hylite.sh)) with protocol file [sam2_protocol_file.txt](scripts/sam2_protocol_file.txt).
-* [salmon](https://combine-lab.github.io/salmon/) mapping and read estimation against reference transcripts: [salmon.flower.sh](scripts/salmon.flower.sh) and [salmon.seed.sh](scripts/salmon.seed.sh)
+* [EAGLE-rc](https://github.com/tony-kuo/eagle) classifies reads via calculating the likelihood of the read given Star alignments to A2 and D5 genome reference with scripts [eagle-rc.sh](scripts/eagle-rc.sh) and [runStarEagle-rc.slurm](scripts/runStarEagle-rc.slurm).
+
+### Generic mapping tools
+
+* [RSEM](http://deweylab.github.io/RSEM/) runs Bowtie2 mapping by default against polyploid reference transcripts followed by read estimation: SE ([here](https://github.com/huguanjing/AD1_RNA-seq/blob/master/bowtie2rsem.sh)) and PE ([bowtie2rsem_PE.sh](scripts/bowtie2rsem_PE.sh)) bash scrpts.
+* [salmon](https://combine-lab.github.io/salmon/) mapping and read estimation against polyploid reference transcripts: [salmon.flower.sh](scripts/salmon.flower.sh) and [salmon.seed.sh](scripts/salmon.seed.sh)
 * [kallisto](https://pachterlab.github.io/kallisto/) mapping and read estimation against reference transcripts: [kallisto.flower.sh](scripts/kallisto.flower.sh) and [kallisto.seed.sh](scripts/kallisto.seed.sh)
+* We also applied the traditional approach using only Bowtie2 uniquely mapped reads against the polyploid transcriptome reference [runBowtie2only.slurm](scripts/runBowtie2only.slurm).
 
+The A2D5 transcript sequences were used as reference, which were derived from the D5 gene models and A2-D5 SNP index (`smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/GenomicResources/pseudogenomes/A2D5.transcripts.fa`). 
 
-RSEM, salmon and kallisto used A2D5 transcript sequences as reference, which were derived from the D5 gene models and A2-D5 SNP index (`smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/GenomicResources/pseudogenomes/A2D5.transcripts.fa`). HyLite uses the D5 only transcript sequences for reference (`smb://lss.its.iastate.edu/gluster-lss/research/jfw-lab/Projects/Eflen/seed_for_eflen_paper/bowtie2hylite/D5.transcripts.fa`)
 
 ## Data analysis in R - workflow and scripts
 
@@ -33,17 +46,20 @@ LSS long term storage dir: `/lss/research/jfw-lab/Projects/Eflen/`
 * [1a.read\_polycat\_datasets.r](scripts/1a.read_polycat_datasets.r)
 * [1b.read\_RSEM\_datasets.r](scripts/1b.read_RSEM_datasets.r)
 * [1c.read\_hylite\_datasets.r](scripts/1c.read_hylite_datasets.r)
+* [1c.read\_hyliteAref\_datasets.r](scripts/1c.read_hyliteAref_datasets.r)
 * [1d.read\_salmon\_datasets.r](scripts/1d.read_salmon_datasets.r)
 * [1e.read\_kallisto\_datasets.r](scripts/1e.read_kallisto_datasets.r)
-* [1x.compare_datasets.r](scripts/1x.compare_datasets.r)
+* [1e.read\_eaglerc\_datasets.r](scripts/1e.read_eaglerc_datasets.r)
+* [1e.read\_bowtie\_datasets.r](scripts/1e.read_bowtie_datasets.r)
 
 #### Output read count tables:
 
 * PolyCat [raw counts](results/table.count.polycat.txt)
-* HyLiTE [total read counts based D5 reference](results/table.count.hylite.total.txt) and [partitioned read counts in polyploid](results/table.count.hylite.ADs.txt)
+* HyLiTE - D5 based [total read counts](results/table.count.hylite.total.txt) and [partitioned polyploid read counts](results/table.count.hylite.ADs.txt); A2 based [total read counts](results/table.count.hyliteAref.total.txt) and [partitioned polyploid read counts](results/table.count.hyliteAref.ADs.txt);
 * RSEM [estimated counts](results/table.count.rsem.txt) and [estimated RPKMs](results/table.rpkm.rsem.txt)
 * Salmon [raw read counts](results/table.count.salmon.txt) and [tpm counts](results/table.tpm.salmon.txt)
 * Kallisto [raw read counts](results/table.count.kallisto.txt) and [tpm counts](results/table.tpm.kallisto.txt)
+* Bowtie2 [raw read counts](results/table.count.bowtie.txt) 
 
 #### Explanation of other output files
 
@@ -52,7 +68,6 @@ LSS long term storage dir: `/lss/research/jfw-lab/Projects/Eflen/`
 * `pca.[method].log2cpm.pdf`............ PCA plot of 33 samples
 * `R-01-[method]Datasets.RData`............ raw read counts of A2.Total, A2.At, A2.Dt, D5.Total, D5.At, D5.Dt, ADs.At, ADs.Dt
 * `R-01-[method]NetworkDatasets.RData`............ dataset to build duplicated networks for A2D5 (expected from diploid true counts), A2D5.tech (technically expected from diploid counts accounting for program and reference errors), ADs (observed as estimated polyploid counts).
-* `s1.plotVariance.A2D5vsADs.pdf`............ PCA plot of A2D5, A2D5.tech, ADs; not very useful.
 
 
 ### Step 2. Evalutation of homoeolog read estimation
@@ -64,7 +79,7 @@ In addition, custom measures of ***Efficiency*** and ***Discrepancy*** were used
 
 #### Scripts
 
-* [detectEffectiveRegion.r](effectiveRegion/detectEffectiveRegion.r): get effective transcript regions that are diagnostic of homoeolog origins, given certain RNA-seq fragment length - 100 bp for SE, 300 bp for PE here. 
+* [detectEffectiveRegion.r](effectiveRegion/detectEffectiveRegion.r): get effective transcript regions that are diagnostic of homoeolog origins, given certain RNA-seq fragment length - 100 bp for SE, 300 bp for PE here. ***Ambiguity* = 1 - %effective_region**
 * [2.0.get\_hylite_true.sh](scripts/2.0.get_hylite_true.sh): extract one-to-one mapping correspondence between ADs and diploid reads
 * [2.1.evaluate\_read_assignment.r](scripts/2.1.evaluate_read_assignment.r) : metrics calculation
 * [2.2.evaluation\_summary.r](scripts/2.2.evaluation_summary.r): compare metrics and make summary table.
@@ -148,8 +163,8 @@ True and estimated homoeolog read count tables from 10 datasets (five mapping pi
 
 * [6.prepFunctionCategory.r](scripts/6.prepFunctionCategory.r)
 * [6.FUN.r](scripts/6.FUN.r) 
-* [6a.NC.r](scripts/6a.NC.r) ([6a.slurm](scripts/6a.slurm))
-* [6b.FC.r](scripts/6b.FC.r) ([6b.slurm](scripts/6b.slurm))
+* [6a.NC.r](scripts/6a.NC.r) 
+* [6b.FC.r](scripts/6b.FC.r)
 * [6.post.r](scripts/6.post.r)
 
 #### Explanation of output files
@@ -171,7 +186,7 @@ True and estimated homoeolog read count tables from 10 datasets (five mapping pi
 
 ### Step 7. Examination of the impact of read ambiguity on performance
 
-The metrics derived from read assignment, DE, DC and network analyses were correlayed with gene groups binned by *%eflen*.
+The metrics derived from read assignment, DE, DC and network analyses were correlayed with gene groups binned by ambiguity.
 
 #### Scripts
 
@@ -179,4 +194,4 @@ The metrics derived from read assignment, DE, DC and network analyses were corre
 
 #### Explanation of output files
 
-* `s7.eval_by_%eflen.pdf`............ Efficiency, Descrepancy, F1 and MCC inspected by *%eflen* bins.
+*  `s7.eflen.rdata`............ summary results of quantification, DE, DC, and network performance with respected to ambiguity levels.

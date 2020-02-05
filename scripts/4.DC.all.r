@@ -40,11 +40,13 @@ getClass<-function(exp_corM, obs_corM, nSample)
 ####################
 
 # setwd("/work/LAS/jfw-lab/hugj2006/eflen/output")
-rdatafiles<-grep("R-01.*.NetworkDatasets.RData",list.files(),value=TRUE)
+setwd("/work/LAS/jfw-lab/hugj2006/eflen2020/Ranalysis")
+rdatafiles<-grep("Aref",list.files(pattern="R-01.*.NetworkDatasets.RData"),value=TRUE,invert=TRUE)
 rdatafiles
-# "R-01-hyliteNetworkDatasets.RData"   "R-01-kallistoNetworkDatasets.RData"
-# "R-01-polycatNetworkDatasets.RData"  "R-01-rsemNetworkDatasets.RData"
-# "R-01-salmonNetworkDatasets.RData"
+# [1] "R-01-bowtieNetworkDatasets.RData"   "R-01-eaglercNetworkDatasets.RData"
+# [3] "R-01-hyliteNetworkDatasets.RData"   "R-01-kallistoNetworkDatasets.RData"
+# [5] "R-01-polycatNetworkDatasets.RData"  "R-01-rsemNetworkDatasets.RData"
+# [7] "R-01-salmonNetworkDatasets.RData"
 
 options(scipen=999) # disable scientifc format
 
@@ -127,7 +129,12 @@ resS[,-c(1,2)]<-apply(resS[,-c(1,2)],2,as.numeric)
 
 rownames(resA)=NULL
 rownames(resS)=NULL
+mmm= c("polycat_rld", "polycat_log2rpkm", "hylite_rld", "hylite_log2rpkm", "eaglerc_rld", "eaglerc_log2rpkm", "rsem_rld", "rsem_log2rpkm","kallisto_rld", "kallisto_log2rpkm","salmon_rld", "salmon_log2rpkm","bowtie_rld", "bowtie_log2rpkm")
+resS=resS[match(mmm,paste(resS$dataset,resS$norm, sep="_")),]
+resA=resA[match(mmm,paste(resA$dataset,resA$norm, sep="_")),]
+
 save(resS,resA,file="s4.DC.all.Rdata")
+write.table(cbind(resA,resS),file="s4.DC.all.sig.txt", sep="\t")
 
 #####################################
 ## Enrichment analysis of DC class ##
@@ -188,8 +195,6 @@ rownames(resiTable)<-paste(sig,resS$dataset,resS$norm)
 corrplot(resiTable, is.cor = FALSE, main="Chi-square test residuals for each dataset",mar=c(0,0,4,0))
 dev.off()
 
-quit(save="no")
-
 
 ##############################################
 ## Identify differential coexpression genes ##
@@ -208,14 +213,15 @@ names(n.list) <- paste(resA$dataset,resA$norm,sep="_")
 p.list <- resS$sigP/resS$genePairs
 names(p.list) <- paste(resS$dataset,resS$norm,sep="_")
 
-# setwd("/work/LAS/jfw-lab/hugj2006/eflen/output")
-rdatafiles<-grep("R-01.*.NetworkDatasets.RData",list.files(),value=TRUE)
+rdatafiles<-grep("Aref",list.files(pattern="R-01.*.NetworkDatasets.RData"),value=TRUE,invert=TRUE)
 rdatafiles
-# "R-01-hyliteNetworkDatasets.RData"   "R-01-kallistoNetworkDatasets.RData"
-# "R-01-polycatNetworkDatasets.RData"  "R-01-rsemNetworkDatasets.RData"
-# "R-01-salmonNetworkDatasets.RData"
+# [1] "R-01-bowtieNetworkDatasets.RData"   "R-01-eaglercNetworkDatasets.RData"
+# [3] "R-01-hyliteNetworkDatasets.RData"   "R-01-kallistoNetworkDatasets.RData"
+# [5] "R-01-polycatNetworkDatasets.RData"  "R-01-rsemNetworkDatasets.RData"
+# [7] "R-01-salmonNetworkDatasets.RData"
 
 # get k and P for each dataset
+library(svMisc)
 for(file in rdatafiles)
 {
     message(file)
@@ -249,7 +255,6 @@ for(file in rdatafiles)
         if(n!=nrow(obs) ) break
         
         # now get k, loop by gene
-        require(svMisc)
         dcg <- data.frame(genes = rownames(exp), P=NA)
         for (i in 1:n)
         {
@@ -279,8 +284,8 @@ for(file in rdatafiles)
     }
 }
 
-DCG=list(hylite_log2rpkm.dcg, hylite_rld.dcg, kallisto_log2rpkm.dcg, kallisto_rld.dcg, polycat_log2rpkm.dcg, polycat_rld.dcg, rsem_log2rpkm.dcg, rsem_rld.dcg, salmon_log2rpkm.dcg, salmon_rld.dcg)
-names(DCG) = c("hylite_log2rpkm", "hylite_rld", "kallisto_log2rpkm", "kallisto_rld", "polycat_log2rpkm", "polycat_rld", "rsem_log2rpkm", "rsem_rld", "salmon_log2rpkm", "salmon_rld")
+DCG=list(hylite_log2rpkm.dcg, hylite_rld.dcg, kallisto_log2rpkm.dcg, kallisto_rld.dcg, polycat_log2rpkm.dcg, polycat_rld.dcg, rsem_log2rpkm.dcg, rsem_rld.dcg, salmon_log2rpkm.dcg, salmon_rld.dcg, bowtie_log2rpkm.dcg, bowtie_rld.dcg, eaglerc_log2rpkm.dcg, eaglerc_rld.dcg)
+names(DCG) = c("hylite_log2rpkm", "hylite_rld", "kallisto_log2rpkm", "kallisto_rld", "polycat_log2rpkm", "polycat_rld", "rsem_log2rpkm", "rsem_rld", "salmon_log2rpkm", "salmon_rld","bowtie_log2rpkm", "bowtie_rld","eaglerc_log2rpkm", "eaglerc_rld" )
 lapply(DCG, function(x)table(x$q.bh<0.05) )
 
 resA$DCgene=lapply(DCG,function(x)length(which(x$q.bh<0.05)))[paste(resA$dataset,resA$norm,sep="_")]
@@ -288,70 +293,4 @@ resA$DCgenePerc =lapply(DCG,function(x)length(which(x$q.bh<0.05))/nrow(x))[paste
 
 save(resS, resA, DCG, file="s4.DC.all.Rdata")
 
----------book 10/31/18
-###########################
-## Possible causes of DC ##
-###########################
-m<-load("s5.DC.all.Rdata")
-m # "resS" "resA" "DCG"
-
-# E, A, D
-load("s2.assign_eval.hylite.Rdata")
-load("s2.assign_eval.polycat.Rdata")
-load("s2.assign_eval.rsem.Rdata")
-source("addTrans.r")
-
-# library(VennDiagram)
-library(gplots)
-library(scatterplot3d)
-library(scales)
-library(RColorBrewer)
-show_col(hue_pal()(9))
-show_col(brewer.pal(n = 9, name = "Paired"))
-colors<-c(addTrans("grey", 150), addTrans("blue", 150), addTrans("grey", 150), addTrans("red", 150))
-show_col(colors)
-
-for(i in names(DCG))
-{
-    x<-DCG[[i]]
-    x$class <- "NonSig"
-    x$class[x$q.bh<0.05]<-"Sig"
-    x$genome <- "At"
-    x$genome[grep("d$",x$genes)] <- "Dt"
-    x$gorai <- gsub(".$","",x$genes)
-    
-    # combine DC results with asignment metrics
-    metrics <-get(gsub("_.*","",i))
-    metrics$gene <-gsub("a$|d$","",metrics$gene)
-    tt<-aggregate(metrics[,-c(1:4)],by=list(metrics$gene), function(x)mean(x,na.rm=TRUE))
-    rownames(tt)<-tt$Group.1
-    y<- cbind(x,tt[x$gorai,])
-    
-    #save image
-    pdf(paste0("s5.DC.all.metrics.",i,".pdf"))
-    
-    # plot venn for overlap between At and Dt DC genes
-    venn(list(At=x$gorai[x$genome=="At"&x$class=="Sig"], Dt=x$gorai[x$genome=="Dt"&x$class=="Sig"]))
-    #venn.diagram(x=list(At=x$gorai[x$genome=="At"&x$class=="Sig"], Dt=x$gene[x$genome=="Dt"&x$class=="Sig"]), filename="test.tiff",fill = c("light blue", "pink"))
-    
-    # boxplot by DC class
-    boxplot(geneLenM~genome+class,data=y, main ="Gene Length")
-    boxplot(percentageEffectM~genome+class,data=y, main="Average percentage effiective region")
-    boxplot(expression~genome+class,data=y, main="Average expression")
-    boxplot(expression.log2~genome+class,data=y, main="Average log2 expression")
-    boxplot(efficiency~genome+class,data=y, main="Efficiency")
-    boxplot(accuracy~genome+class,data=y, main="Accuracy")
-    boxplot(discrepancy0~genome+class,data=y, main="Discrepancy")
-    
-    # 3d scatter plot of significant changes
-    attach(y)
-    cc<-as.factor(paste(genome,class))
-    levels(cc)
-    scatterplot3d(accuracy, efficiency, discrepancy0, color=colors[cc], type="h", pch=20)
-    legend("right", legend = levels(cc), col = colors, pch = 16, bg="white")
-    scatterplot3d(geneLenM, percentageEffectM, expression.log2, color=colors[cc], type="h",pch=20, xlim=c(0,3000))
-    legend("right", legend = levels(cc), col = colors, pch = 16, bg="white")
-    detach(y)
-    dev.off()
-}
-
+quit(save="no")
